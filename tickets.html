@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Летний Розыгрыш — Билеты</title>
+
+<!-- ============================================================
+     ⚙ НАСТРОЙКА ⚙
+     TICKETS_CSV_URL — лист Tickets
+     CONFIG_CSV_URL  — лист Config (баннер, призы, даты)
+     VIEWERS_CSV_URL — лист Viewers (аватарки)
+     ============================================================ -->
+<script>
+  const TICKETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pub?gid=1111321722&single=true&output=csv";
+  const CONFIG_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pub?gid=222000002&single=true&output=csv";
+  const VIEWERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pub?gid=222000001&single=true&output=csv";
+  const HOME_URL = "./";
+</script>
+
+<style>
+  /* ===== Цветовая палитра: океан + закат ===== */
+  :root {
+    --ocean-deep:    #0c4a6e;
+    --ocean-mid:     #0891b2;
+    --ocean-light:   #22d3ee;
+    --coral:         #fb923c;
+    --coral-light:   #fdba74;
+    --sand:          #fef3c7;
+    --sand-warm:     #fde68a;
+
+    --bronze:        #cd7f32;
+    --bronze-glow:   rgba(205, 127, 50, 0.5);
+    --silver:        #d4d4d8;
+    --silver-glow:   rgba(186, 230, 253, 0.6);
+    --gold:          #ffd700;
+    --gold-glow:     rgba(255, 215, 0, 0.6);
+
+    --text:          #f0f9ff;
+    --text-dim:      rgba(240, 249, 255, 0.6);
+    --text-faint:    rgba(240, 249, 255, 0.35);
+
+    --card-bg:       rgba(8, 47, 73, 0.5);
+    --card-border:   rgba(34, 211, 238, 0.18);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background:
+      linear-gradient(180deg,
+        #082f49 0%,
+        #0c4a6e 35%,
+        #0891b2 70%,
+        #67e8f9 92%,
+        #fef3c7 100%
+      );
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--text);
+    padding: 30px 20px 80px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Лёгкие "блики" на воде */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(ellipse 600px 200px at 20% 30%, rgba(34, 211, 238, 0.12), transparent 60%),
+      radial-gradient(ellipse 800px 250px at 80% 60%, rgba(251, 146, 60, 0.08), transparent 60%),
+      radial-gradient(ellipse 400px 150px at 50% 80%, rgba(253, 224, 71, 0.06), transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+
+  .nav { margin-bottom: 18px; }
+  .nav a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: color 0.15s ease;
+  }
+  .nav a:hover { color: var(--coral-light); }
+
+  /* ===== Шапка с баннером ===== */
+  .header-banner {
+    width: 100%;
+    aspect-ratio: 5 / 2;
+    max-height: 280px;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    position: relative;
+    background:
+      linear-gradient(135deg, rgba(12, 74, 110, 0.4), rgba(251, 146, 60, 0.25)),
+      linear-gradient(180deg, #075985, #0891b2);
+    border: 1px solid var(--card-border);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    display: none;
+  }
+  .header-banner.active { display: block; }
+  .header-banner img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Фолбэк шапка (если баннер не задан) */
+  .header-fallback {
+    text-align: center;
+    padding: 32px 20px 20px;
+    margin-bottom: 24px;
+  }
+  .header-fallback.hidden { display: none; }
+
+  .title {
+    font-size: 44px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    background: linear-gradient(135deg, var(--coral-light) 0%, var(--sand) 50%, var(--coral) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 30px rgba(251, 146, 60, 0.3);
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  /* ===== Призовая зона ===== */
+  .prize-zone {
+    margin-bottom: 32px;
+  }
+
+  .prize-current {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 28px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .prize-current::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center top, var(--tier-glow, transparent), transparent 70%);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .prize-label {
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    position: relative;
+  }
+
+  .prize-amount {
+    font-size: 56px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    line-height: 1;
+    margin-bottom: 8px;
+    position: relative;
+    color: var(--tier-color, var(--coral-light));
+    text-shadow: 0 0 24px var(--tier-glow, transparent), 0 0 48px var(--tier-glow, transparent);
+  }
+
+  .prize-skins {
+    font-size: 14px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    margin-bottom: 18px;
+    position: relative;
+  }
+
+  /* Тиры призов */
+  .prize-current.tier-bronze {
+    --tier-color: #e89e5e;
+    --tier-glow: rgba(205, 127, 50, 0.35);
+  }
+  .prize-current.tier-silver {
+    --tier-color: #e0e7ef;
+    --tier-glow: rgba(186, 230, 253, 0.5);
+  }
+  .prize-current.tier-gold {
+    --tier-color: #ffd700;
+    --tier-glow: rgba(255, 215, 0, 0.55);
+  }
+  .prize-current.tier-gold .prize-amount {
+    animation: goldPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes goldPulse {
+    0%, 100% { text-shadow: 0 0 24px var(--gold-glow), 0 0 48px var(--gold-glow); }
+    50%      { text-shadow: 0 0 36px var(--gold-glow), 0 0 80px var(--gold-glow); }
+  }
+
+  /* Таймер внутри призовой карточки */
+  .prize-timer {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    position: relative;
+    margin-top: 6px;
+  }
+  .timer-unit {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    min-width: 72px;
+    backdrop-filter: blur(6px);
+  }
+  .timer-num {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .timer-label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-top: 5px;
+  }
+  .timer-finished {
+    font-size: 16px;
+    color: var(--sand);
+    letter-spacing: 1px;
+    margin-top: 6px;
+  }
+
+  /* Превью трёх месяцев */
+  .prize-track {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .prize-mini {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 14px 12px;
+    text-align: center;
+    backdrop-filter: blur(8px);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    opacity: 0.55;
+  }
+  .prize-mini.is-current {
+    opacity: 1;
+    border-color: var(--mini-color, var(--coral));
+    box-shadow: 0 0 0 1px var(--mini-color, var(--coral)), 0 8px 24px var(--mini-glow, rgba(251, 146, 60, 0.2));
+  }
+  .prize-mini.is-past {
+    opacity: 0.35;
+  }
+  .prize-mini.tier-bronze { --mini-color: #cd7f32; --mini-glow: rgba(205, 127, 50, 0.25); }
+  .prize-mini.tier-silver { --mini-color: #c0c0c0; --mini-glow: rgba(192, 192, 192, 0.3); }
+  .prize-mini.tier-gold   { --mini-color: #ffd700; --mini-glow: rgba(255, 215, 0, 0.35); }
+
+  .prize-mini-month {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .prize-mini-amount {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--mini-color, var(--text));
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .prize-mini-skins {
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+
+  /* ===== Поиск ===== */
+  .controls {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 28px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .search-input {
+    background: rgba(8, 47, 73, 0.5);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    width: 320px;
+    max-width: 100%;
+    outline: none;
+    transition: all 0.15s ease;
+  }
+  .search-input:focus {
+    border-color: var(--coral-light);
+    background: rgba(8, 47, 73, 0.7);
+    box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.15);
+  }
+  .search-input::placeholder { color: var(--text-faint); }
+
+  /* ===== Подиум ===== */
+  .podium-title {
+    text-align: center;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+
+  .podium {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr 1fr;
+    gap: 16px;
+    align-items: end;
+    margin-bottom: 36px;
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .podium-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid;
+    border-radius: 14px;
+    padding: 20px 14px 18px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease;
+  }
+  .podium-card:hover { transform: translateY(-4px); }
+
+  .podium-card.p-1 {
+    border-color: var(--gold);
+    background: linear-gradient(180deg, rgba(255, 215, 0, 0.12) 0%, rgba(8, 47, 73, 0.6) 70%);
+    box-shadow: 0 0 0 1px var(--gold-glow), 0 12px 40px rgba(255, 215, 0, 0.18);
+    padding-top: 28px;
+    padding-bottom: 24px;
+  }
+  .podium-card.p-1 .podium-avatar { width: 88px; height: 88px; font-size: 30px; }
+  .podium-card.p-1 .podium-nick { font-size: 18px; }
+  .podium-card.p-1::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: linear-gradient(45deg, transparent 30%, rgba(255, 215, 0, 0.08) 50%, transparent 70%);
+    animation: shimmer 4s infinite linear;
+    pointer-events: none;
+    z-index: 0;
+  }
+  @keyframes shimmer {
+    0%   { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+
+  .podium-card.p-2 {
+    border-color: var(--silver);
+    background: linear-gradient(180deg, rgba(212, 212, 216, 0.1) 0%, rgba(8, 47, 73, 0.6) 70%);
+  }
+  .podium-card.p-3 {
+    border-color: var(--bronze);
+    background: linear-gradient(180deg, rgba(205, 127, 50, 0.12) 0%, rgba(8, 47, 73, 0.6) 70%);
+  }
+
+  .podium-medal {
+    font-size: 28px;
+    margin-bottom: 6px;
+    position: relative; z-index: 1;
+  }
+  .podium-avatar {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    border: 3px solid;
+    background-size: cover; background-position: center;
+    margin: 0 auto 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 500;
+    position: relative; z-index: 1;
+  }
+  .p-1 .podium-avatar { border-color: var(--gold); background-color: rgba(255, 215, 0, 0.15); color: var(--gold); }
+  .p-2 .podium-avatar { border-color: var(--silver); background-color: rgba(212, 212, 216, 0.15); color: var(--silver); }
+  .p-3 .podium-avatar { border-color: var(--bronze); background-color: rgba(205, 127, 50, 0.18); color: #e89e5e; }
+
+  .podium-nick {
+    font-size: 15px; font-weight: 500;
+    margin-bottom: 10px;
+    position: relative; z-index: 1;
+    word-break: break-word;
+  }
+  .podium-tickets {
+    display: flex; justify-content: center;
+    position: relative; z-index: 1;
+  }
+
+  /* ===== Сетка остальных ===== */
+  .grid-title {
+    text-align: center;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+  }
+  .ticket-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 14px 12px;
+    text-align: center;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    position: relative;
+  }
+  .ticket-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--coral);
+    box-shadow: 0 8px 24px rgba(251, 146, 60, 0.15);
+  }
+  .ticket-rank {
+    position: absolute; top: 8px; left: 10px;
+    font-size: 11px; color: var(--text-faint); letter-spacing: 1px;
+  }
+  .ticket-avatar {
+    width: 54px; height: 54px;
+    border-radius: 50%;
+    border: 2px solid var(--card-border);
+    background-size: cover; background-position: center;
+    background-color: rgba(8, 47, 73, 0.6);
+    margin: 4px auto 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: var(--text-dim);
+  }
+  .ticket-nick {
+    font-size: 14px; font-weight: 500;
+    margin-bottom: 8px;
+    word-break: break-word;
+  }
+  .ticket-counts {
+    display: flex; justify-content: center;
+  }
+  .ticket-pill {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    background: linear-gradient(135deg, rgba(251, 146, 60, 0.2), rgba(253, 224, 71, 0.15));
+    color: var(--coral-light);
+    border: 1px solid rgba(251, 146, 60, 0.3);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .status {
+    text-align: center;
+    color: var(--text-dim);
+    padding: 60px 20px;
+    font-size: 15px;
+  }
+  .status.error { color: #fca5a5; }
+  .status code { background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 4px; font-family: monospace; }
+
+  .no-results {
+    text-align: center;
+    color: var(--text-faint);
+    padding: 30px;
+    font-style: italic;
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 700px) {
+    body { padding: 20px 14px 60px; }
+    .title { font-size: 30px; letter-spacing: 2px; }
+    .prize-amount { font-size: 42px; }
+    .prize-track { grid-template-columns: 1fr; gap: 8px; }
+    .prize-mini { padding: 10px; }
+    .podium { grid-template-columns: 1fr; gap: 12px; max-width: 300px; }
+    .podium-card.p-1 { order: 1; }
+    .podium-card.p-2 { order: 2; }
+    .podium-card.p-3 { order: 3; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+    .timer-unit { min-width: 60px; padding: 8px 10px; }
+    .timer-num { font-size: 22px; }
+  }
+</style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="nav"><a href="" id="home-link">← Главная</a></div>
+
+    <!-- Шапка-баннер (показывается если есть header_banner_url) -->
+    <div id="header-banner" class="header-banner">
+      <img id="header-banner-img" alt="">
+    </div>
+
+    <!-- Фолбэк-шапка (если баннер не задан) -->
+    <div id="header-fallback" class="header-fallback">
+      <h1 class="title" id="event-title">🌊 Летний Розыгрыш 🏖️</h1>
+      <p class="subtitle" id="event-subtitle">PariPariKai × Ilyich116 × d1psy_off</p>
+    </div>
+
+    <!-- Призовая зона -->
+    <div class="prize-zone" id="prize-zone" style="display:none;">
+      <div class="prize-current" id="prize-current">
+        <div class="prize-label" id="prize-label">Главный приз — Июнь</div>
+        <div class="prize-amount" id="prize-amount">10 000 ₽</div>
+        <div class="prize-skins" id="prize-skins">+ 5 000 ₽ скинами CS</div>
+
+        <div class="prize-timer" id="prize-timer">
+          <div class="timer-unit"><div class="timer-num" id="t-days">0</div><div class="timer-label">дней</div></div>
+          <div class="timer-unit"><div class="timer-num" id="t-hours">00</div><div class="timer-label">часов</div></div>
+          <div class="timer-unit"><div class="timer-num" id="t-mins">00</div><div class="timer-label">минут</div></div>
+          <div class="timer-unit"><div class="timer-num" id="t-secs">00</div><div class="timer-label">секунд</div></div>
+        </div>
+        <div id="timer-finished" class="timer-finished" style="display:none;">⚡ Розыгрыш совсем скоро</div>
+      </div>
+
+      <!-- Превью трёх месяцев -->
+      <div class="prize-track">
+        <div class="prize-mini tier-bronze" id="mini-june">
+          <div class="prize-mini-month">Июнь</div>
+          <div class="prize-mini-amount" id="mini-june-amount">10 000 ₽</div>
+          <div class="prize-mini-skins" id="mini-june-skins">+ скины CS</div>
+        </div>
+        <div class="prize-mini tier-silver" id="mini-july">
+          <div class="prize-mini-month">Июль</div>
+          <div class="prize-mini-amount" id="mini-july-amount">20 000 ₽</div>
+          <div class="prize-mini-skins" id="mini-july-skins">+ скины CS</div>
+        </div>
+        <div class="prize-mini tier-gold" id="mini-august">
+          <div class="prize-mini-month">Август</div>
+          <div class="prize-mini-amount" id="mini-august-amount">50 000 ₽</div>
+          <div class="prize-mini-skins" id="mini-august-skins">+ скины CS</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Поиск -->
+    <div class="controls">
+      <input type="text" class="search-input" id="search-input" placeholder="🔍 Найти себя по нику...">
+    </div>
+
+    <div id="status" class="status">Загружаю билеты...</div>
+
+    <div id="content" style="display:none;">
+      <div id="podium-wrap" style="display:none;">
+        <p class="podium-title">⚜ Топ 3 ⚜</p>
+        <div class="podium" id="podium"></div>
+      </div>
+      <div id="rest-wrap" style="display:none;">
+        <p class="grid-title">Остальные участники</p>
+        <div class="grid" id="grid"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ============================================================
+// Парсинг CSV
+// ============================================================
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], next = text[i + 1];
+    if (inQuotes) {
+      if (c === '"' && next === '"') { cell += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { cell += c; }
+    } else {
+      if (c === '"') { inQuotes = true; }
+      else if (c === ',') { row.push(cell); cell = ''; }
+      else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+      else if (c === '\r') {}
+      else { cell += c; }
+    }
+  }
+  if (cell.length > 0 || row.length > 0) {
+    row.push(cell);
+    if (row.some(c => c.length > 0)) rows.push(row);
+  }
+  return rows;
+}
+
+function rowsToViewers(rows) {
+  if (rows.length < 2) return {};
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const nickIdx = headers.indexOf('nick');
+  const avatarIdx = headers.indexOf('avatar_url');
+  if (nickIdx < 0) return {};
+  const map = {};
+  rows.slice(1).forEach(r => {
+    if (r.length > 0 && r[nickIdx] && r[nickIdx].trim()) {
+      const nick = r[nickIdx].trim();
+      map[nick.toLowerCase()] = {
+        nick: nick,
+        avatar: avatarIdx >= 0 ? (r[avatarIdx] || '').trim() : '',
+      };
+    }
+  });
+  return map;
+}
+
+function rowsToTickets(rows, viewersMap) {
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const nickIdx = headers.indexOf('nick');
+  const ticketsIdx = headers.indexOf('tickets');
+  // avatar_url из таблицы Tickets (если VLOOKUP уже подтянул) — как фолбэк
+  const avatarIdx = headers.indexOf('avatar_url');
+  if (nickIdx < 0 || ticketsIdx < 0) return [];
+  return rows.slice(1)
+    .filter(r => r.length > 0 && r[nickIdx] && r[nickIdx].trim())
+    .map(r => {
+      const nick = (r[nickIdx] || '').trim();
+      const tickets = parseInt((r[ticketsIdx] || '0').trim(), 10) || 0;
+      const viewer = viewersMap[nick.toLowerCase()] || {};
+      const avatarFromSheet = avatarIdx >= 0 ? (r[avatarIdx] || '').trim() : '';
+      return {
+        nick: nick,
+        avatar: viewer.avatar || avatarFromSheet || '',
+        tickets: tickets,
+      };
+    })
+    .filter(t => t.tickets > 0)
+    .sort((a, b) => b.tickets - a.tickets);
+}
+
+function rowsToConfig(rows) {
+  if (rows.length < 2) return {};
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const keyIdx = headers.indexOf('key');
+  const valIdx = headers.indexOf('value');
+  if (keyIdx < 0 || valIdx < 0) return {};
+  const config = {};
+  rows.slice(1).forEach(r => {
+    if (r.length > 0 && r[keyIdx]) {
+      config[r[keyIdx].trim().toLowerCase()] = (r[valIdx] || '').trim();
+    }
+  });
+  return config;
+}
+
+function initials(nick) {
+  const clean = nick.replace(/[^A-Za-zА-Яа-я0-9]/g, '');
+  if (clean.length >= 2) return (clean[0] + clean[1]).toUpperCase();
+  return (clean[0] || '?').toUpperCase();
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+// ============================================================
+// Определение текущего месяца и тира приза
+// ============================================================
+// Правила:
+//  - до 30 июня (включительно) → июнь, bronze
+//  - 1 июля – 31 июля → июль, silver
+//  - 1 августа – 31 августа → август, gold
+//  - после 31 августа → август остаётся как "финальный", но таймер сразу finished
+// Если в Config стоит current_prize_override = "june"/"july"/"august" — берётся он
+function determineCurrentMonth(config) {
+  const override = (config.current_prize_override || '').toLowerCase().trim();
+  if (['june', 'july', 'august'].includes(override)) return override;
+
+  const now = new Date();
+  const y = now.getFullYear();
+  const julyStart = new Date(y, 6, 1, 0, 0, 0);   // 1 июля
+  const augStart  = new Date(y, 7, 1, 0, 0, 0);   // 1 августа
+  const sepStart  = new Date(y, 8, 1, 0, 0, 0);   // 1 сентября
+
+  if (now < julyStart) return 'june';
+  if (now < augStart)  return 'july';
+  if (now < sepStart)  return 'august';
+  return 'august'; // после сезона остаётся последний
+}
+
+const MONTH_TO_TIER = { june: 'bronze', july: 'silver', august: 'gold' };
+const MONTH_LABEL_RU = { june: 'Июнь', july: 'Июль', august: 'Август' };
+
+// ============================================================
+// Настройка призовой зоны
+// ============================================================
+function setupPrizeZone(config) {
+  const prizeZone = document.getElementById('prize-zone');
+  prizeZone.style.display = 'block';
+
+  const currentMonth = determineCurrentMonth(config);
+  const tier = MONTH_TO_TIER[currentMonth];
+
+  // Заполнение мини-карточек
+  ['june', 'july', 'august'].forEach(m => {
+    const amt = config[`prize_${m}_amount`] || '';
+    const skins = config[`prize_${m}_skins`] || '';
+    document.getElementById(`mini-${m}-amount`).textContent = amt;
+    document.getElementById(`mini-${m}-skins`).textContent = skins ? '+ ' + skins : '';
+
+    const card = document.getElementById(`mini-${m}`);
+    card.classList.remove('is-current', 'is-past');
+    if (m === currentMonth) card.classList.add('is-current');
+    else if (monthOrder(m) < monthOrder(currentMonth)) card.classList.add('is-past');
+  });
+
+  // Большая карточка
+  const big = document.getElementById('prize-current');
+  big.classList.remove('tier-bronze', 'tier-silver', 'tier-gold');
+  big.classList.add(`tier-${tier}`);
+
+  document.getElementById('prize-label').textContent =
+    `Главный приз — ${MONTH_LABEL_RU[currentMonth]}`;
+  document.getElementById('prize-amount').textContent =
+    config[`prize_${currentMonth}_amount`] || '';
+  const skins = config[`prize_${currentMonth}_skins`] || '';
+  document.getElementById('prize-skins').textContent = skins ? '+ ' + skins : '';
+
+  // Таймер
+  setupTimer(config, currentMonth);
+}
+
+function monthOrder(m) {
+  return { june: 0, july: 1, august: 2 }[m] ?? -1;
+}
+
+// ============================================================
+// Таймер
+// ============================================================
+let raffleDate = null;
+let timerInterval = null;
+
+function setupTimer(config, currentMonth) {
+  const isActive = (config.raffle_active || '').toLowerCase();
+  const show = ['true', 'yes', '1', 'да'].includes(isActive);
+
+  if (!show) {
+    document.getElementById('prize-timer').style.display = 'none';
+    document.getElementById('timer-finished').style.display = 'none';
+    if (timerInterval) clearInterval(timerInterval);
+    return;
+  }
+
+  const dateStr = (config[`raffle_date_${currentMonth}`] || '').replace(' ', 'T');
+  raffleDate = new Date(dateStr);
+
+  if (isNaN(raffleDate.getTime())) {
+    document.getElementById('prize-timer').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('prize-timer').style.display = 'flex';
+  if (timerInterval) clearInterval(timerInterval);
+  updateTimer();
+  timerInterval = setInterval(updateTimer, 1000);
+}
+
+function updateTimer() {
+  if (!raffleDate) return;
+  const now = new Date();
+  const diff = raffleDate - now;
+
+  const timerEl = document.getElementById('prize-timer');
+  const finishedEl = document.getElementById('timer-finished');
+
+  if (diff <= 0) {
+    timerEl.style.display = 'none';
+    finishedEl.style.display = 'block';
+    if (timerInterval) clearInterval(timerInterval);
+    return;
+  }
+  timerEl.style.display = 'flex';
+  finishedEl.style.display = 'none';
+
+  const days  = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+  const mins  = Math.floor((diff / (1000 * 60)) % 60);
+  const secs  = Math.floor((diff / 1000) % 60);
+
+  document.getElementById('t-days').textContent  = days;
+  document.getElementById('t-hours').textContent = String(hours).padStart(2, '0');
+  document.getElementById('t-mins').textContent  = String(mins).padStart(2, '0');
+  document.getElementById('t-secs').textContent  = String(secs).padStart(2, '0');
+}
+
+// ============================================================
+// Настройка шапки и текста
+// ============================================================
+function setupHeader(config) {
+  const banner = document.getElementById('header-banner');
+  const bannerImg = document.getElementById('header-banner-img');
+  const fallback = document.getElementById('header-fallback');
+
+  if (config.header_banner_url) {
+    bannerImg.src = config.header_banner_url;
+    banner.classList.add('active');
+    fallback.classList.add('hidden');
+  } else {
+    banner.classList.remove('active');
+    fallback.classList.remove('hidden');
+  }
+
+  if (config.event_title) {
+    document.getElementById('event-title').textContent = config.event_title;
+  }
+  if (config.event_subtitle) {
+    document.getElementById('event-subtitle').textContent = config.event_subtitle;
+  }
+}
+
+// ============================================================
+// Рендер билетов
+// ============================================================
+function buildAvatar(t, sizeClass) {
+  if (t.avatar) {
+    return `<div class="${sizeClass}" style="background-image:url('${esc(t.avatar)}');"></div>`;
+  }
+  return `<div class="${sizeClass}">${esc(initials(t.nick))}</div>`;
+}
+
+function ticketsPill(t) {
+  return `<span class="ticket-pill">🎟️ ${t.tickets}</span>`;
+}
+
+function renderPodium(top3) {
+  const podium = document.getElementById('podium');
+  const order = [top3[1], top3[0], top3[2]];
+  const positions = [2, 1, 3];
+  podium.innerHTML = order.map((t, i) => {
+    if (!t) return '<div></div>';
+    const pos = positions[i];
+    const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+    return `
+      <div class="podium-card p-${pos}">
+        <div class="podium-medal">${medals[pos]}</div>
+        ${buildAvatar(t, 'podium-avatar')}
+        <div class="podium-nick">${esc(t.nick)}</div>
+        <div class="podium-tickets">${ticketsPill(t)}</div>
+      </div>
+    `;
+  }).join('');
+  document.getElementById('podium-wrap').style.display = 'block';
+}
+
+function renderGrid(rest) {
+  const grid = document.getElementById('grid');
+  if (rest.length === 0) {
+    grid.innerHTML = '';
+    document.getElementById('rest-wrap').style.display = 'none';
+    return;
+  }
+  grid.innerHTML = rest.map((t, i) => `
+    <div class="ticket-card" data-nick="${esc(t.nick.toLowerCase())}">
+      <div class="ticket-rank">#${i + 4}</div>
+      ${buildAvatar(t, 'ticket-avatar')}
+      <div class="ticket-nick">${esc(t.nick)}</div>
+      <div class="ticket-counts">${ticketsPill(t)}</div>
+    </div>
+  `).join('');
+  document.getElementById('rest-wrap').style.display = 'block';
+}
+
+let allTickets = [];
+
+function applyFilters() {
+  const search = (document.getElementById('search-input').value || '').trim().toLowerCase();
+  let filtered = allTickets;
+  if (search) filtered = allTickets.filter(t => t.nick.toLowerCase().includes(search));
+
+  if (search) {
+    document.getElementById('podium-wrap').style.display = 'none';
+    const grid = document.getElementById('grid');
+    if (filtered.length === 0) {
+      document.getElementById('rest-wrap').style.display = 'block';
+      grid.innerHTML = '<div class="no-results">Никого не нашли по этому нику</div>';
+    } else {
+      grid.innerHTML = filtered.map(t => {
+        const rank = allTickets.indexOf(t) + 1;
+        return `
+          <div class="ticket-card" data-nick="${esc(t.nick.toLowerCase())}">
+            <div class="ticket-rank">#${rank}</div>
+            ${buildAvatar(t, 'ticket-avatar')}
+            <div class="ticket-nick">${esc(t.nick)}</div>
+            <div class="ticket-counts">${ticketsPill(t)}</div>
+          </div>
+        `;
+      }).join('');
+      document.getElementById('rest-wrap').style.display = 'block';
+    }
+    return;
+  }
+
+  const top3 = filtered.slice(0, 3);
+  const rest = filtered.slice(3, 30);
+  if (top3.length > 0) renderPodium(top3);
+  else document.getElementById('podium-wrap').style.display = 'none';
+  renderGrid(rest);
+}
+
+document.getElementById('search-input').addEventListener('input', applyFilters);
+
+// ============================================================
+// Загрузка данных
+// ============================================================
+let viewersMap = {};
+
+async function loadAll() {
+  const status = document.getElementById('status');
+  const content = document.getElementById('content');
+
+  if (!TICKETS_CSV_URL || TICKETS_CSV_URL === 'PASTE_YOUR_TICKETS_CSV_URL_HERE') {
+    status.classList.add('error');
+    status.innerHTML = '⚠ Не настроена ссылка <code>TICKETS_CSV_URL</code>';
+    return;
+  }
+
+  try {
+    const [ticketsRes, configRes, viewersRes] = await Promise.allSettled([
+      fetch(TICKETS_CSV_URL),
+      CONFIG_CSV_URL && CONFIG_CSV_URL !== 'PASTE_YOUR_CONFIG_CSV_URL_HERE'
+        ? fetch(CONFIG_CSV_URL) : Promise.resolve(null),
+      VIEWERS_CSV_URL && VIEWERS_CSV_URL !== 'PASTE_YOUR_VIEWERS_CSV_URL_HERE'
+        ? fetch(VIEWERS_CSV_URL) : Promise.resolve(null),
+    ]);
+
+    // Viewers
+    if (viewersRes.status === 'fulfilled' && viewersRes.value && viewersRes.value.ok) {
+      const csv = await viewersRes.value.text();
+      viewersMap = rowsToViewers(parseCSV(csv));
+    }
+
+    // Config
+    if (configRes.status === 'fulfilled' && configRes.value && configRes.value.ok) {
+      const csv = await configRes.value.text();
+      const config = rowsToConfig(parseCSV(csv));
+      setupHeader(config);
+      setupPrizeZone(config);
+    } else {
+      // Если конфига нет — всё равно показать призовую зону с дефолтами
+      setupPrizeZone({
+        prize_june_amount: '10 000 ₽',
+        prize_june_skins: '5 000 ₽ скинами CS',
+        prize_july_amount: '20 000 ₽',
+        prize_july_skins: '10 000 ₽ скинами CS',
+        prize_august_amount: '50 000 ₽',
+        prize_august_skins: '25 000 ₽ скинами CS',
+        raffle_active: 'false',
+      });
+    }
+
+    // Tickets
+    if (ticketsRes.status === 'rejected' || !ticketsRes.value.ok) {
+      throw new Error('Не удалось загрузить лист Tickets');
+    }
+    const ticketsCsv = await ticketsRes.value.text();
+    allTickets = rowsToTickets(parseCSV(ticketsCsv), viewersMap);
+
+    if (allTickets.length === 0) {
+      status.innerHTML = '🎟️ Пока ни у кого нет билетов. Заходи на стрим — копи билеты!';
+      return;
+    }
+
+    applyFilters();
+    status.style.display = 'none';
+    content.style.display = 'block';
+  } catch (err) {
+    status.classList.add('error');
+    status.innerHTML = '⚠ Ошибка: ' + esc(err.message);
+  }
+}
+
+document.getElementById('home-link').setAttribute('href', HOME_URL);
+loadAll();
+setInterval(loadAll, 60000);
+</script>
+</body>
+</html>
