@@ -12,9 +12,9 @@
      VIEWERS_CSV_URL — лист Viewers (аватарки)
      ============================================================ -->
 <script>
-  const TICKETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pub?gid=1111321722&single=true&output=csv";
-  const CONFIG_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pub?gid=222000002&single=true&output=csv";
-  const VIEWERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pub?gid=222000001&single=true&output=csv";
+  const TICKETS_CSV_URL = "PASTE_YOUR_TICKETS_CSV_URL_HERE";
+  const CONFIG_CSV_URL  = "PASTE_YOUR_CONFIG_CSV_URL_HERE";
+  const VIEWERS_CSV_URL = "PASTE_YOUR_VIEWERS_CSV_URL_HERE";
   const HOME_URL = "./";
 </script>
 
@@ -90,39 +90,52 @@
   }
   .nav a:hover { color: var(--coral-light); }
 
-  /* ===== Шапка с баннером ===== */
-  .header-banner {
-    width: 100%;
-    aspect-ratio: 5 / 2;
-    max-height: 280px;
-    border-radius: 16px;
-    overflow: hidden;
-    margin-bottom: 24px;
+  /* ===== Шапка-герой ===== */
+  .hero {
     position: relative;
-    background:
-      linear-gradient(135deg, rgba(12, 74, 110, 0.4), rgba(251, 146, 60, 0.25)),
-      linear-gradient(180deg, #075985, #0891b2);
+    border-radius: 18px;
+    overflow: hidden;
+    margin-bottom: 28px;
+    padding: 48px 24px 36px;
+    text-align: center;
+    background: linear-gradient(135deg, #075985 0%, #0891b2 60%, #0c4a6e 100%);
     border: 1px solid var(--card-border);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-    display: none;
-  }
-  .header-banner.active { display: block; }
-  .header-banner img {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    display: block;
+    box-shadow: 0 16px 50px rgba(0, 0, 0, 0.35);
+    min-height: 260px;
   }
 
-  /* Фолбэк шапка (если баннер не задан) */
-  .header-fallback {
-    text-align: center;
-    padding: 32px 20px 20px;
-    margin-bottom: 24px;
+  /* Баннер как фон шапки */
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    z-index: 0;
+    transition: background-image 0.3s ease;
   }
-  .header-fallback.hidden { display: none; }
+  /* Тёмная плашка поверх баннера для читаемости */
+  .hero-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(8, 47, 73, 0.55) 0%, rgba(8, 47, 73, 0.75) 60%, rgba(8, 47, 73, 0.92) 100%),
+      radial-gradient(ellipse at center, rgba(8, 47, 73, 0.2) 0%, rgba(8, 47, 73, 0.6) 100%);
+  }
+
+  /* Если баннера нет — лёгкое свечение */
+  .hero.no-bg .hero-bg {
+    background-image: linear-gradient(180deg, rgba(251, 146, 60, 0.1) 0%, rgba(34, 211, 238, 0.06) 100%);
+  }
+  .hero.no-bg .hero-bg::after { content: none; }
+
+  .hero-content {
+    position: relative;
+    z-index: 1;
+  }
 
   .title {
-    font-size: 44px;
+    font-size: 48px;
     font-weight: 700;
     letter-spacing: 3px;
     background: linear-gradient(135deg, var(--coral-light) 0%, var(--sand) 50%, var(--coral) 100%);
@@ -131,12 +144,63 @@
     -webkit-text-fill-color: transparent;
     text-shadow: 0 0 30px rgba(251, 146, 60, 0.3);
     margin-bottom: 8px;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
   }
   .subtitle {
-    font-size: 13px;
+    font-size: 12px;
     letter-spacing: 4px;
-    color: var(--text-dim);
+    color: var(--sand);
     text-transform: uppercase;
+    margin-bottom: 28px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  }
+
+  /* Карточки стримеров */
+  .streamers {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .streamer-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    background: rgba(8, 47, 73, 0.55);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(253, 224, 71, 0.25);
+    border-radius: 14px;
+    text-decoration: none;
+    color: var(--text);
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    min-width: 130px;
+  }
+  .streamer-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--coral-light);
+    box-shadow: 0 8px 24px rgba(251, 146, 60, 0.3);
+  }
+  .streamer-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 2px solid var(--coral-light);
+    background-size: cover;
+    background-position: center;
+    background-color: rgba(8, 47, 73, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--coral-light);
+  }
+  .streamer-nick {
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
   }
 
   /* ===== Призовая зона ===== */
@@ -510,7 +574,13 @@
 
   @media (max-width: 700px) {
     body { padding: 20px 14px 60px; }
-    .title { font-size: 30px; letter-spacing: 2px; }
+    .hero { padding: 32px 16px 24px; min-height: 0; }
+    .title { font-size: 28px; letter-spacing: 2px; }
+    .subtitle { font-size: 11px; letter-spacing: 3px; margin-bottom: 20px; }
+    .streamers { gap: 10px; }
+    .streamer-card { min-width: 0; padding: 10px 12px; flex: 1; max-width: 110px; }
+    .streamer-avatar { width: 52px; height: 52px; font-size: 18px; }
+    .streamer-nick { font-size: 12px; }
     .prize-amount { font-size: 42px; }
     .prize-track { grid-template-columns: 1fr; gap: 8px; }
     .prize-mini { padding: 10px; }
@@ -529,15 +599,14 @@
   <div class="wrap">
     <div class="nav"><a href="" id="home-link">← Главная</a></div>
 
-    <!-- Шапка-баннер (показывается если есть header_banner_url) -->
-    <div id="header-banner" class="header-banner">
-      <img id="header-banner-img" alt="">
-    </div>
-
-    <!-- Фолбэк-шапка (если баннер не задан) -->
-    <div id="header-fallback" class="header-fallback">
-      <h1 class="title" id="event-title">🌊 Летний Розыгрыш 🏖️</h1>
-      <p class="subtitle" id="event-subtitle">PariPariKai × Ilyich116 × d1psy_off</p>
+    <!-- Шапка-герой: баннер фоном + название + три стримера -->
+    <div id="hero" class="hero no-bg">
+      <div class="hero-bg" id="hero-bg"></div>
+      <div class="hero-content">
+        <h1 class="title" id="event-title">Летний Розыгрыш 2026</h1>
+        <p class="subtitle" id="event-subtitle">PariPariKai × Ilyich116 × d1psy_off</p>
+        <div class="streamers" id="streamers"></div>
+      </div>
     </div>
 
     <!-- Призовая зона -->
@@ -828,25 +897,65 @@ function updateTimer() {
 // Настройка шапки и текста
 // ============================================================
 function setupHeader(config) {
-  const banner = document.getElementById('header-banner');
-  const bannerImg = document.getElementById('header-banner-img');
-  const fallback = document.getElementById('header-fallback');
+  const hero = document.getElementById('hero');
+  const heroBg = document.getElementById('hero-bg');
 
+  // Баннер как фон шапки
   if (config.header_banner_url) {
-    bannerImg.src = config.header_banner_url;
-    banner.classList.add('active');
-    fallback.classList.add('hidden');
+    heroBg.style.backgroundImage = `url('${config.header_banner_url}')`;
+    hero.classList.remove('no-bg');
   } else {
-    banner.classList.remove('active');
-    fallback.classList.remove('hidden');
+    heroBg.style.backgroundImage = '';
+    hero.classList.add('no-bg');
   }
 
+  // Название и подзаголовок
   if (config.event_title) {
     document.getElementById('event-title').textContent = config.event_title;
   }
   if (config.event_subtitle) {
     document.getElementById('event-subtitle').textContent = config.event_subtitle;
   }
+
+  // Карточки стримеров
+  renderStreamers(config);
+}
+
+function renderStreamers(config) {
+  const container = document.getElementById('streamers');
+  if (!container) return;
+
+  const streamers = [];
+  for (let i = 1; i <= 3; i++) {
+    const nick = (config[`streamer${i}_nick`] || '').trim();
+    if (!nick) continue;
+    streamers.push({
+      nick: nick,
+      avatar: (config[`streamer${i}_avatar_url`] || '').trim(),
+      url: (config[`streamer${i}_twitch_url`] || '').trim(),
+    });
+  }
+
+  if (streamers.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = streamers.map(s => {
+    const avatarHtml = s.avatar
+      ? `<div class="streamer-avatar" style="background-image:url('${esc(s.avatar)}');"></div>`
+      : `<div class="streamer-avatar">${esc(initials(s.nick))}</div>`;
+    const tag = s.url ? 'a' : 'div';
+    const attrs = s.url
+      ? `href="${esc(s.url)}" target="_blank" rel="noopener noreferrer"`
+      : '';
+    return `
+      <${tag} class="streamer-card" ${attrs}>
+        ${avatarHtml}
+        <div class="streamer-nick">${esc(s.nick)}</div>
+      </${tag}>
+    `;
+  }).join('');
 }
 
 // ============================================================
