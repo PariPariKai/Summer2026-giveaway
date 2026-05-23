@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Летний Розыгрыш — Билеты</title>
+
+<!-- ============================================================
+     ⚙ НАСТРОЙКА ⚙
+     ============================================================ -->
+<script>
+  const TICKETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pub?gid=1111321722&single=true&output=csv";
+  const CONFIG_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pub?gid=222000002&single=true&output=csv";
+  const VIEWERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pub?gid=222000001&single=true&output=csv";
+  const HOME_URL = "./";
+</script>
+
+<style>
+  :root {
+    --ocean-deep:    #0c4a6e;
+    --ocean-mid:     #0891b2;
+    --ocean-light:   #22d3ee;
+    --coral:         #fb923c;
+    --coral-light:   #fdba74;
+    --sand:          #fef3c7;
+    --sand-warm:     #fde68a;
+
+    --silver:        #d4d4d8;
+    --silver-light:  #e5e7eb;
+    --silver-glow:   rgba(186, 230, 253, 0.6);
+    --gold:          #ffd700;
+    --gold-light:    #fde68a;
+    --gold-glow:     rgba(255, 215, 0, 0.6);
+
+    /* Цвета стримеров */
+    --ppk-color:     #06b6d4;
+    --ppk-bg:        rgba(6, 182, 212, 0.15);
+    --ppk-border:    rgba(6, 182, 212, 0.45);
+
+    --ilyich-color:  #10b981;
+    --ilyich-bg:     rgba(16, 185, 129, 0.15);
+    --ilyich-border: rgba(16, 185, 129, 0.45);
+
+    --dipsy-color:   #a78bfa;
+    --dipsy-bg:      rgba(167, 139, 250, 0.15);
+    --dipsy-border:  rgba(167, 139, 250, 0.5);
+
+    --text:          #f0f9ff;
+    --text-dim:      rgba(240, 249, 255, 0.6);
+    --text-faint:    rgba(240, 249, 255, 0.35);
+
+    --card-bg:       rgba(8, 47, 73, 0.5);
+    --card-border:   rgba(34, 211, 238, 0.18);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background:
+      linear-gradient(180deg,
+        #082f49 0%,
+        #0c4a6e 35%,
+        #0891b2 70%,
+        #67e8f9 92%,
+        #fef3c7 100%
+      );
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--text);
+    padding: 30px 20px 80px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(ellipse 600px 200px at 20% 30%, rgba(34, 211, 238, 0.12), transparent 60%),
+      radial-gradient(ellipse 800px 250px at 80% 60%, rgba(251, 146, 60, 0.08), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+
+  .nav { margin-bottom: 18px; display: flex; gap: 16px; }
+  .nav a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: color 0.15s ease;
+  }
+  .nav a:hover { color: var(--coral-light); }
+
+  /* ===== Шапка-герой ===== */
+  .hero {
+    position: relative;
+    border-radius: 18px;
+    overflow: hidden;
+    margin-bottom: 28px;
+    padding: 40px 24px 28px;
+    text-align: center;
+    background: linear-gradient(135deg, #075985 0%, #0891b2 60%, #0c4a6e 100%);
+    border: 1px solid var(--card-border);
+    box-shadow: 0 16px 50px rgba(0, 0, 0, 0.35);
+    min-height: 220px;
+  }
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    z-index: 0;
+  }
+  .hero-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(8, 47, 73, 0.55) 0%, rgba(8, 47, 73, 0.78) 60%, rgba(8, 47, 73, 0.92) 100%);
+  }
+  .hero.no-bg .hero-bg { background-image: linear-gradient(180deg, rgba(251, 146, 60, 0.1) 0%, rgba(34, 211, 238, 0.06) 100%); }
+  .hero.no-bg .hero-bg::after { content: none; }
+  .hero-content { position: relative; z-index: 1; }
+
+  .title {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, var(--coral-light) 0%, var(--sand) 50%, var(--coral) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+  }
+  .subtitle {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--sand);
+    text-transform: uppercase;
+    margin-bottom: 22px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  }
+
+  .streamers {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .streamer-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: rgba(8, 47, 73, 0.55);
+    backdrop-filter: blur(10px);
+    border: 1px solid;
+    border-radius: 14px;
+    text-decoration: none;
+    color: var(--text);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    min-width: 120px;
+  }
+  .streamer-card.s-ppk    { border-color: var(--ppk-border); }
+  .streamer-card.s-ilyich { border-color: var(--ilyich-border); }
+  .streamer-card.s-dipsy  { border-color: var(--dipsy-border); }
+  .streamer-card:hover { transform: translateY(-3px); }
+  .streamer-card.s-ppk:hover    { box-shadow: 0 8px 24px rgba(6, 182, 212, 0.35); }
+  .streamer-card.s-ilyich:hover { box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35); }
+  .streamer-card.s-dipsy:hover  { box-shadow: 0 8px 24px rgba(167, 139, 250, 0.35); }
+  .streamer-avatar {
+    width: 58px; height: 58px;
+    border-radius: 50%;
+    border: 2px solid;
+    background-size: cover; background-position: center;
+    background-color: rgba(8, 47, 73, 0.6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 500;
+  }
+  .streamer-card.s-ppk .streamer-avatar    { border-color: var(--ppk-color); color: var(--ppk-color); }
+  .streamer-card.s-ilyich .streamer-avatar { border-color: var(--ilyich-color); color: var(--ilyich-color); }
+  .streamer-card.s-dipsy .streamer-avatar  { border-color: var(--dipsy-color); color: var(--dipsy-color); }
+  .streamer-nick { font-size: 13px; font-weight: 500; letter-spacing: 0.3px; }
+
+  /* ===== Поиск ===== */
+  .controls {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+  .search-input {
+    background: rgba(8, 47, 73, 0.5);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    width: 320px;
+    max-width: 100%;
+    outline: none;
+    transition: all 0.15s ease;
+  }
+  .search-input:focus {
+    border-color: var(--coral-light);
+    background: rgba(8, 47, 73, 0.7);
+    box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.15);
+  }
+  .search-input::placeholder { color: var(--text-faint); }
+
+  /* ===== Заголовки секций ===== */
+  .section-title {
+    text-align: center;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+
+  /* ===== Подиум ===== */
+  .podium {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    align-items: stretch;
+    margin-bottom: 36px;
+  }
+  .podium-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid;
+    border-radius: 14px;
+    padding: 18px 14px 16px;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+  }
+  .podium-card.p-1 {
+    border-color: var(--gold);
+    background: linear-gradient(180deg, rgba(255, 215, 0, 0.12) 0%, rgba(8, 47, 73, 0.65) 60%);
+    box-shadow: 0 0 0 1px var(--gold-glow), 0 12px 40px rgba(255, 215, 0, 0.15);
+  }
+  .podium-card.p-1::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: linear-gradient(45deg, transparent 30%, rgba(255, 215, 0, 0.06) 50%, transparent 70%);
+    animation: shimmer 5s infinite linear;
+    pointer-events: none; z-index: 0;
+  }
+  @keyframes shimmer { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+  .podium-card.p-2 { border-color: var(--silver); background: linear-gradient(180deg, rgba(212, 212, 216, 0.1) 0%, rgba(8, 47, 73, 0.65) 60%); }
+  .podium-card.p-3 { border-color: #cd7f32; background: linear-gradient(180deg, rgba(205, 127, 50, 0.12) 0%, rgba(8, 47, 73, 0.65) 60%); }
+
+  .podium-medal { font-size: 24px; margin-bottom: 4px; position: relative; z-index: 1; }
+  .podium-avatar {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    border: 3px solid;
+    background-size: cover; background-position: center;
+    margin: 0 auto 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 500;
+    position: relative; z-index: 1;
+  }
+  .p-1 .podium-avatar { border-color: var(--gold); background-color: rgba(255, 215, 0, 0.15); color: var(--gold); }
+  .p-2 .podium-avatar { border-color: var(--silver); background-color: rgba(212, 212, 216, 0.15); color: var(--silver); }
+  .p-3 .podium-avatar { border-color: #cd7f32; background-color: rgba(205, 127, 50, 0.18); color: #e89e5e; }
+  .podium-nick {
+    font-size: 15px; font-weight: 500;
+    margin-bottom: 14px;
+    position: relative; z-index: 1;
+    word-break: break-word;
+  }
+
+  /* Разбивка по стримерам в подиуме */
+  .streamer-breakdown {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 5px;
+    margin-bottom: 12px;
+    position: relative; z-index: 1;
+  }
+  .streamer-block {
+    border-radius: 8px;
+    padding: 6px 4px;
+    border: 1px solid;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .streamer-block.s-ppk    { background: var(--ppk-bg);    border-color: var(--ppk-border); }
+  .streamer-block.s-ilyich { background: var(--ilyich-bg); border-color: var(--ilyich-border); }
+  .streamer-block.s-dipsy  { background: var(--dipsy-bg);  border-color: var(--dipsy-border); }
+
+  .sb-tier {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .sb-tier.gold   { color: var(--gold-light); }
+  .sb-tier.silver { color: var(--silver-light); }
+
+  .sb-cap {
+    font-size: 9px;
+    color: var(--text-faint);
+    font-weight: 400;
+  }
+
+  .ticket-total {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--coral-light);
+    background: linear-gradient(135deg, rgba(251, 146, 60, 0.18), rgba(253, 224, 71, 0.12));
+    border: 1px solid rgba(251, 146, 60, 0.4);
+    border-radius: 12px;
+    padding: 6px 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    position: relative; z-index: 1;
+  }
+  .ticket-total-label {
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 3px;
+    position: relative; z-index: 1;
+  }
+
+  /* ===== Сетка остальных ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  .ticket-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 14px 12px 12px;
+    position: relative;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    cursor: pointer;
+    user-select: none;
+  }
+  .ticket-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--coral);
+    box-shadow: 0 8px 24px rgba(251, 146, 60, 0.15);
+  }
+  .ticket-card.expanded {
+    border-color: var(--coral-light);
+    box-shadow: 0 8px 28px rgba(251, 146, 60, 0.22);
+  }
+
+  .ticket-rank {
+    position: absolute; top: 8px; left: 10px;
+    font-size: 11px; color: var(--text-faint); letter-spacing: 1px;
+  }
+  .ticket-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .ticket-avatar {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    border: 2px solid var(--card-border);
+    background-size: cover; background-position: center;
+    background-color: rgba(8, 47, 73, 0.6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .ticket-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .ticket-nick {
+    font-size: 14px; font-weight: 500;
+    word-break: break-word;
+  }
+  .ticket-summary-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .ticket-total-mini {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--coral-light);
+  }
+  .ticket-dots {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .ticket-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .ticket-dot.s-ppk    { background: var(--ppk-color); }
+  .ticket-dot.s-ilyich { background: var(--ilyich-color); }
+  .ticket-dot.s-dipsy  { background: var(--dipsy-color); }
+  .ticket-dot.faded { opacity: 0.25; }
+
+  .expand-icon {
+    position: absolute;
+    top: 12px; right: 12px;
+    font-size: 11px;
+    color: var(--text-faint);
+    transition: transform 0.25s ease;
+  }
+  .ticket-card.expanded .expand-icon {
+    transform: rotate(180deg);
+  }
+
+  /* Раскрытая часть карточки */
+  .ticket-details {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, margin-top 0.3s ease-out, padding-top 0.3s ease-out;
+    margin-top: 0;
+    padding-top: 0;
+  }
+  .ticket-card.expanded .ticket-details {
+    max-height: 240px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--card-border);
+  }
+
+  /* Кросс-страничный хелпер: использован в подиуме как .streamer-breakdown,
+     а в раскрытой карточке как .breakdown-compact */
+  .breakdown-compact {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 5px;
+  }
+
+  .status {
+    text-align: center;
+    color: var(--text-dim);
+    padding: 60px 20px;
+    font-size: 15px;
+  }
+  .status.error { color: #fca5a5; }
+  .status code { background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 4px; font-family: monospace; }
+
+  .no-results {
+    text-align: center;
+    color: var(--text-faint);
+    padding: 30px;
+    font-style: italic;
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 700px) {
+    body { padding: 20px 14px 60px; }
+    .hero { padding: 28px 14px 22px; min-height: 0; }
+    .title { font-size: 26px; letter-spacing: 1.5px; }
+    .subtitle { font-size: 10px; letter-spacing: 3px; margin-bottom: 16px; }
+    .streamers { gap: 8px; }
+    .streamer-card { min-width: 0; padding: 8px 10px; flex: 1; max-width: 100px; }
+    .streamer-avatar { width: 48px; height: 48px; font-size: 16px; }
+    .streamer-nick { font-size: 11px; }
+    .podium { grid-template-columns: 1fr; gap: 10px; max-width: 360px; margin-left: auto; margin-right: auto; }
+    .podium-card.p-1 { order: 1; }
+    .podium-card.p-2 { order: 2; }
+    .podium-card.p-3 { order: 3; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+    .streamer-breakdown { gap: 3px; }
+    .sb-tier { font-size: 10px; }
+    .ticket-card { padding: 12px 10px 10px; }
+    .ticket-avatar { width: 42px; height: 42px; }
+  }
+</style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="nav">
+      <a href="./">← Главная</a>
+    </div>
+
+    <!-- Шапка-герой -->
+    <div id="hero" class="hero no-bg">
+      <div class="hero-bg" id="hero-bg"></div>
+      <div class="hero-content">
+        <h1 class="title" id="event-title">Летний Розыгрыш 2026</h1>
+        <p class="subtitle" id="event-subtitle">PariPariKai × Ilyich116 × d1psy_off</p>
+        <div class="streamers" id="streamers"></div>
+      </div>
+    </div>
+
+    <!-- Поиск -->
+    <div class="controls">
+      <input type="text" class="search-input" id="search-input" placeholder="🔍 Найти себя по нику...">
+    </div>
+
+    <div id="status" class="status">Загружаю билеты...</div>
+
+    <div id="content" style="display:none;">
+      <div id="podium-wrap" style="display:none;">
+        <p class="section-title">⚜ Топ 3 ⚜</p>
+        <div class="podium" id="podium"></div>
+      </div>
+      <div id="rest-wrap" style="display:none;">
+        <p class="section-title">Остальные участники</p>
+        <p style="text-align:center; color:var(--text-faint); font-size:12px; margin-bottom:16px;">Нажми на карточку, чтобы увидеть детали</p>
+        <div class="grid" id="grid"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ============================================================
+// CSV-парсинг
+// ============================================================
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], next = text[i + 1];
+    if (inQuotes) {
+      if (c === '"' && next === '"') { cell += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { cell += c; }
+    } else {
+      if (c === '"') { inQuotes = true; }
+      else if (c === ',') { row.push(cell); cell = ''; }
+      else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+      else if (c === '\r') {}
+      else { cell += c; }
+    }
+  }
+  if (cell.length > 0 || row.length > 0) {
+    row.push(cell);
+    if (row.some(c => c.length > 0)) rows.push(row);
+  }
+  return rows;
+}
+
+function rowsToViewers(rows) {
+  if (rows.length < 2) return {};
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const nickIdx = headers.indexOf('nick');
+  const avatarIdx = headers.indexOf('avatar_url');
+  if (nickIdx < 0) return {};
+  const map = {};
+  rows.slice(1).forEach(r => {
+    if (r.length > 0 && r[nickIdx] && r[nickIdx].trim()) {
+      const nick = r[nickIdx].trim();
+      map[nick.toLowerCase()] = {
+        nick: nick,
+        avatar: avatarIdx >= 0 ? (r[avatarIdx] || '').trim() : '',
+      };
+    }
+  });
+  return map;
+}
+
+function colIndex(headers, name) {
+  return headers.indexOf(name.toLowerCase());
+}
+
+function num(r, idx) {
+  if (idx < 0 || idx >= r.length) return 0;
+  return parseInt((r[idx] || '0').trim(), 10) || 0;
+}
+
+function rowsToTickets(rows, viewersMap) {
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+
+  const idx = {
+    nick:    colIndex(headers, 'nick'),
+    gold_ppk:    colIndex(headers, 'gold_ppk'),
+    gold_ilyich: colIndex(headers, 'gold_ilyich'),
+    gold_dipsy:  colIndex(headers, 'gold_dipsy'),
+    silver_ppk:    colIndex(headers, 'silver_ppk'),
+    silver_ilyich: colIndex(headers, 'silver_ilyich'),
+    silver_dipsy:  colIndex(headers, 'silver_dipsy'),
+    tickets: colIndex(headers, 'tickets'),
+    avatar:  colIndex(headers, 'avatar_url'),
+  };
+
+  if (idx.nick < 0 || idx.tickets < 0) return [];
+
+  return rows.slice(1)
+    .filter(r => r.length > 0 && r[idx.nick] && r[idx.nick].trim())
+    .map(r => {
+      const nick = (r[idx.nick] || '').trim();
+      const viewer = viewersMap[nick.toLowerCase()] || {};
+      const avatarFromSheet = idx.avatar >= 0 ? (r[idx.avatar] || '').trim() : '';
+      return {
+        nick: nick,
+        avatar: viewer.avatar || avatarFromSheet || '',
+        tickets:       num(r, idx.tickets),
+        gold_ppk:      num(r, idx.gold_ppk),
+        gold_ilyich:   num(r, idx.gold_ilyich),
+        gold_dipsy:    num(r, idx.gold_dipsy),
+        silver_ppk:    num(r, idx.silver_ppk),
+        silver_ilyich: num(r, idx.silver_ilyich),
+        silver_dipsy:  num(r, idx.silver_dipsy),
+      };
+    })
+    .filter(t => t.tickets > 0)
+    .sort((a, b) => b.tickets - a.tickets);
+}
+
+function rowsToConfig(rows) {
+  if (rows.length < 2) return {};
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const keyIdx = headers.indexOf('key');
+  const valIdx = headers.indexOf('value');
+  if (keyIdx < 0 || valIdx < 0) return {};
+  const config = {};
+  rows.slice(1).forEach(r => {
+    if (r.length > 0 && r[keyIdx]) {
+      config[r[keyIdx].trim().toLowerCase()] = (r[valIdx] || '').trim();
+    }
+  });
+  return config;
+}
+
+function initials(nick) {
+  const clean = nick.replace(/[^A-Za-zА-Яа-я0-9]/g, '');
+  if (clean.length >= 2) return (clean[0] + clean[1]).toUpperCase();
+  return (clean[0] || '?').toUpperCase();
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+// ============================================================
+// Web Audio — "поп" при раскрытии карточки
+// ============================================================
+let audioCtx = null;
+function playPop() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(420, t);
+    osc.frequency.exponentialRampToValueAtTime(180, t + 0.10);
+
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.18, t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.13);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + 0.15);
+  } catch (e) { /* тихо игнорируем */ }
+}
+
+// ============================================================
+// Шапка
+// ============================================================
+function setupHeader(config) {
+  const hero = document.getElementById('hero');
+  const heroBg = document.getElementById('hero-bg');
+
+  if (config.header_banner_url) {
+    heroBg.style.backgroundImage = `url('${config.header_banner_url}')`;
+    hero.classList.remove('no-bg');
+  } else {
+    heroBg.style.backgroundImage = '';
+    hero.classList.add('no-bg');
+  }
+
+  if (config.event_title) document.getElementById('event-title').textContent = config.event_title;
+  if (config.event_subtitle) document.getElementById('event-subtitle').textContent = config.event_subtitle;
+
+  renderStreamers(config);
+}
+
+const STREAMER_SLOTS = [
+  { idx: 1, klass: 's-ppk' },
+  { idx: 2, klass: 's-ilyich' },
+  { idx: 3, klass: 's-dipsy' },
+];
+
+function renderStreamers(config) {
+  const container = document.getElementById('streamers');
+  if (!container) return;
+
+  const cards = STREAMER_SLOTS.map(slot => {
+    const nick = (config[`streamer${slot.idx}_nick`] || '').trim();
+    if (!nick) return '';
+    const avatar = (config[`streamer${slot.idx}_avatar_url`] || '').trim();
+    const url = (config[`streamer${slot.idx}_twitch_url`] || '').trim();
+    const avatarHtml = avatar
+      ? `<div class="streamer-avatar" style="background-image:url('${esc(avatar)}');"></div>`
+      : `<div class="streamer-avatar">${esc(initials(nick))}</div>`;
+    const tag = url ? 'a' : 'div';
+    const attrs = url
+      ? `href="${esc(url)}" target="_blank" rel="noopener noreferrer"`
+      : '';
+    return `<${tag} class="streamer-card ${slot.klass}" ${attrs}>${avatarHtml}<div class="streamer-nick">${esc(nick)}</div></${tag}>`;
+  }).join('');
+
+  container.innerHTML = cards;
+}
+
+// ============================================================
+// Рендер блока разбивки по стримерам (общий для подиума и раскрытой карточки)
+// ============================================================
+function streamerBlock(klass, gold, silver) {
+  const goldHtml = `<div class="sb-tier gold" title="Золото — без лимита">🟡 ${gold}</div>`;
+  const silverHtml = `
+    <div class="sb-tier silver" title="Серебро — лимит 100">
+      ⚪ ${silver}<span class="sb-cap">/100</span>
+    </div>
+  `;
+  return `<div class="streamer-block ${klass}">${goldHtml}${silverHtml}</div>`;
+}
+
+function streamerBreakdown(t, wrapperClass) {
+  return `
+    <div class="${wrapperClass}">
+      ${streamerBlock('s-ppk',    t.gold_ppk,    t.silver_ppk)}
+      ${streamerBlock('s-ilyich', t.gold_ilyich, t.silver_ilyich)}
+      ${streamerBlock('s-dipsy',  t.gold_dipsy,  t.silver_dipsy)}
+    </div>
+  `;
+}
+
+function dotsBar(t) {
+  const has = (g, s) => g > 0 || s > 0;
+  return `
+    <span class="ticket-dots">
+      <span class="ticket-dot s-ppk${has(t.gold_ppk, t.silver_ppk) ? '' : ' faded'}" title="ПариПариКай"></span>
+      <span class="ticket-dot s-ilyich${has(t.gold_ilyich, t.silver_ilyich) ? '' : ' faded'}" title="Ильич"></span>
+      <span class="ticket-dot s-dipsy${has(t.gold_dipsy, t.silver_dipsy) ? '' : ' faded'}" title="Дипси"></span>
+    </span>
+  `;
+}
+
+// ============================================================
+// Подиум
+// ============================================================
+function buildAvatar(t, sizeClass) {
+  if (t.avatar) return `<div class="${sizeClass}" style="background-image:url('${esc(t.avatar)}');"></div>`;
+  return `<div class="${sizeClass}">${esc(initials(t.nick))}</div>`;
+}
+
+function renderPodium(top3) {
+  const podium = document.getElementById('podium');
+  // Порядок: 2-е, 1-е, 3-е (классический подиум)
+  const order = [top3[1], top3[0], top3[2]];
+  const positions = [2, 1, 3];
+  const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+
+  podium.innerHTML = order.map((t, i) => {
+    if (!t) return '<div></div>';
+    const pos = positions[i];
+    return `
+      <div class="podium-card p-${pos}">
+        <div class="podium-medal">${medals[pos]}</div>
+        ${buildAvatar(t, 'podium-avatar')}
+        <div class="podium-nick">${esc(t.nick)}</div>
+        ${streamerBreakdown(t, 'streamer-breakdown')}
+        <div>
+          <span class="ticket-total-label">всего билетов</span>
+          <span class="ticket-total">🎟️ ${t.tickets}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('podium-wrap').style.display = 'block';
+}
+
+// ============================================================
+// Сетка остальных — компактная карточка с раскрытием
+// ============================================================
+function renderTicketCard(t, rank) {
+  return `
+    <div class="ticket-card" data-nick="${esc(t.nick.toLowerCase())}">
+      <div class="ticket-rank">#${rank}</div>
+      <div class="expand-icon">▼</div>
+      <div class="ticket-summary">
+        ${buildAvatar(t, 'ticket-avatar')}
+        <div class="ticket-info">
+          <div class="ticket-nick">${esc(t.nick)}</div>
+          <div class="ticket-summary-row">
+            <span class="ticket-total-mini">🎟️ ${t.tickets}</span>
+            ${dotsBar(t)}
+          </div>
+        </div>
+      </div>
+      <div class="ticket-details">
+        ${streamerBreakdown(t, 'breakdown-compact')}
+      </div>
+    </div>
+  `;
+}
+
+function renderGrid(rest, startRank = 4) {
+  const grid = document.getElementById('grid');
+  if (rest.length === 0) {
+    grid.innerHTML = '';
+    document.getElementById('rest-wrap').style.display = 'none';
+    return;
+  }
+  grid.innerHTML = rest.map((t, i) => renderTicketCard(t, startRank + i)).join('');
+  document.getElementById('rest-wrap').style.display = 'block';
+  attachExpandHandlers();
+}
+
+function attachExpandHandlers() {
+  document.querySelectorAll('.ticket-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('a')) return;
+      const wasExpanded = card.classList.contains('expanded');
+      card.classList.toggle('expanded');
+      if (!wasExpanded) playPop();
+    });
+  });
+}
+
+// ============================================================
+// Состояние и фильтр
+// ============================================================
+let allTickets = [];
+
+function applyFilters() {
+  const search = (document.getElementById('search-input').value || '').trim().toLowerCase();
+  let filtered = allTickets;
+  if (search) filtered = allTickets.filter(t => t.nick.toLowerCase().includes(search));
+
+  const podiumWrap = document.getElementById('podium-wrap');
+  const restWrap = document.getElementById('rest-wrap');
+  const grid = document.getElementById('grid');
+
+  if (search) {
+    // В режиме поиска — скрываем подиум, всё в сетку
+    podiumWrap.style.display = 'none';
+    if (filtered.length === 0) {
+      restWrap.style.display = 'block';
+      grid.innerHTML = '<div class="no-results">Никого не нашли по этому нику</div>';
+    } else {
+      grid.innerHTML = filtered.map(t => {
+        const rank = allTickets.indexOf(t) + 1;
+        return renderTicketCard(t, rank);
+      }).join('');
+      restWrap.style.display = 'block';
+      attachExpandHandlers();
+    }
+    return;
+  }
+
+  // Без поиска — подиум + сетка
+  const top3 = filtered.slice(0, 3);
+  const rest = filtered.slice(3);
+
+  if (top3.length > 0) renderPodium(top3);
+  else podiumWrap.style.display = 'none';
+
+  renderGrid(rest);
+}
+
+document.getElementById('search-input').addEventListener('input', applyFilters);
+
+// ============================================================
+// Загрузка данных
+// ============================================================
+let viewersMap = {};
+
+async function loadAll() {
+  const status = document.getElementById('status');
+  const content = document.getElementById('content');
+
+  if (!TICKETS_CSV_URL || TICKETS_CSV_URL === 'PASTE_YOUR_TICKETS_CSV_URL_HERE') {
+    status.classList.add('error');
+    status.innerHTML = '⚠ Не настроена ссылка <code>TICKETS_CSV_URL</code>';
+    return;
+  }
+
+  try {
+    const [ticketsRes, configRes, viewersRes] = await Promise.allSettled([
+      fetch(TICKETS_CSV_URL),
+      CONFIG_CSV_URL && CONFIG_CSV_URL !== 'PASTE_YOUR_CONFIG_CSV_URL_HERE'
+        ? fetch(CONFIG_CSV_URL) : Promise.resolve(null),
+      VIEWERS_CSV_URL && VIEWERS_CSV_URL !== 'PASTE_YOUR_VIEWERS_CSV_URL_HERE'
+        ? fetch(VIEWERS_CSV_URL) : Promise.resolve(null),
+    ]);
+
+    if (viewersRes.status === 'fulfilled' && viewersRes.value && viewersRes.value.ok) {
+      viewersMap = rowsToViewers(parseCSV(await viewersRes.value.text()));
+    }
+
+    if (configRes.status === 'fulfilled' && configRes.value && configRes.value.ok) {
+      setupHeader(rowsToConfig(parseCSV(await configRes.value.text())));
+    } else {
+      setupHeader({});
+    }
+
+    if (ticketsRes.status === 'rejected' || !ticketsRes.value.ok) {
+      throw new Error('Не удалось загрузить лист Tickets');
+    }
+    allTickets = rowsToTickets(parseCSV(await ticketsRes.value.text()), viewersMap);
+
+    if (allTickets.length === 0) {
+      status.innerHTML = '🎟️ Пока ни у кого нет билетов. Заходи на стрим — копи билеты!';
+      return;
+    }
+
+    applyFilters();
+    status.style.display = 'none';
+    content.style.display = 'block';
+  } catch (err) {
+    status.classList.add('error');
+    status.innerHTML = '⚠ Ошибка: ' + esc(err.message);
+  }
+}
+
+loadAll();
+setInterval(loadAll, 60000);
+</script>
+</body>
+</html>
