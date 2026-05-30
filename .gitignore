@@ -16,3 +16,6 @@ Desktop.ini
 
 # Node (на будущее, если появится сборка)
 node_modules/
+
+# Внутренние инструкции по настройке Google Sheets — не для публичного репо
+SHEETS_INSTRUCTIONS*.md
