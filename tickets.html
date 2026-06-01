@@ -573,8 +573,8 @@ function parseCSV(text) {
 function rowsToViewers(rows) {
   if (rows.length < 2) return {};
   const headers = rows[0].map(h => h.trim().toLowerCase());
-  const nickIdx = headers.indexOf('nick');
-  const avatarIdx = headers.indexOf('avatar_url');
+  const nickIdx = headers.indexOf('ник') >= 0 ? headers.indexOf('ник') : headers.indexOf('nick');
+  const avatarIdx = headers.indexOf('аватар') >= 0 ? headers.indexOf('аватар') : headers.indexOf('avatar_url');
   if (nickIdx < 0) return {};
   const map = {};
   rows.slice(1).forEach(r => {
@@ -603,15 +603,15 @@ function rowsToTickets(rows, viewersMap) {
   const headers = rows[0].map(h => h.trim().toLowerCase());
 
   const idx = {
-    nick:    colIndex(headers, 'nick'),
-    gold_ppk:    colIndex(headers, 'gold_ppk'),
-    gold_ilyich: colIndex(headers, 'gold_ilyich'),
-    gold_dipsy:  colIndex(headers, 'gold_dipsy'),
-    silver_ppk:    colIndex(headers, 'silver_ppk'),
-    silver_ilyich: colIndex(headers, 'silver_ilyich'),
-    silver_dipsy:  colIndex(headers, 'silver_dipsy'),
-    tickets: colIndex(headers, 'tickets'),
-    avatar:  colIndex(headers, 'avatar_url'),
+    nick:    colIndex(headers, 'ник'),
+    gold_ppk:    colIndex(headers, 'золото_ппк'),
+    gold_ilyich: colIndex(headers, 'золото_ильич'),
+    gold_dipsy:  colIndex(headers, 'золото_дипси'),
+    silver_ppk:    colIndex(headers, 'серебро_ппк'),
+    silver_ilyich: colIndex(headers, 'серебро_ильич'),
+    silver_dipsy:  colIndex(headers, 'серебро_дипси'),
+    tickets: colIndex(headers, 'билеты'),
+    avatar:  colIndex(headers, 'аватар'),
   };
 
   if (idx.nick < 0 || idx.tickets < 0) return [];
@@ -911,7 +911,7 @@ async function loadAll() {
   const status = document.getElementById('status');
   const content = document.getElementById('content');
 
-  if (!TICKETS_CSV_URL || TICKETS_CSV_URL === 'PASTE_YOUR_TICKETS_CSV_URL_HERE') {
+  if (!TICKETS_CSV_URL || TICKETS_CSV_URL === 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pubhtml?gid=1111321722&single=true') {
     status.classList.add('error');
     status.innerHTML = '⚠ Не настроена ссылка <code>TICKETS_CSV_URL</code>';
     return;
@@ -920,9 +920,9 @@ async function loadAll() {
   try {
     const [ticketsRes, configRes, viewersRes] = await Promise.allSettled([
       fetch(TICKETS_CSV_URL),
-      CONFIG_CSV_URL && CONFIG_CSV_URL !== 'PASTE_YOUR_CONFIG_CSV_URL_HERE'
+      CONFIG_CSV_URL && CONFIG_CSV_URL !== 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pubhtml?gid=222000002&single=true'
         ? fetch(CONFIG_CSV_URL) : Promise.resolve(null),
-      VIEWERS_CSV_URL && VIEWERS_CSV_URL !== 'PASTE_YOUR_VIEWERS_CSV_URL_HERE'
+      VIEWERS_CSV_URL && VIEWERS_CSV_URL !== 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pubhtml?gid=222000001&single=true'
         ? fetch(VIEWERS_CSV_URL) : Promise.resolve(null),
     ]);
 

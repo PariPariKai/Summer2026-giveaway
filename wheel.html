@@ -213,6 +213,17 @@
   }
   .elimination-status.active { display: block; }
 
+  /* ===== Режим напряжения (драма) ===== */
+  .drama-status {
+    background: linear-gradient(135deg, rgba(251,146,60,0.15), rgba(168,85,247,0.15));
+    border: 1px solid rgba(251,146,60,0.4);
+    border-radius: 8px; padding: 10px 20px;
+    color: #fdba74; font-size: 13px; letter-spacing: 1px;
+    text-align: center; margin-bottom: 16px;
+    display: none;
+  }
+  .drama-status.active { display: block; }
+
   /* ===== Лог ===== */
   .log {
     width: 100%; max-width: 700px;
@@ -420,6 +431,10 @@
       Режим выбывания. Осталось участников: <span id="elim-remaining">0</span>
     </div>
 
+    <div id="drama-status" class="drama-status">
+      🎭 Режим напряжения активен. Победитель уже определён, выбывают остальные.
+    </div>
+
     <div class="wheel-area">
       <svg class="wheel-svg" id="wheel" viewBox="0 0 100 100"></svg>
       <div class="wheel-pointer" id="wheel-pointer">
@@ -442,6 +457,7 @@
 
     <div class="controls">
       <button class="ctrl-btn primary" id="btn-single">🎯 Один победитель</button>
+      <button class="ctrl-btn primary" id="btn-drama">🎭 Финал в напряжении</button>
       <button class="ctrl-btn primary" id="btn-elim">⚔ Режим выбывания</button>
       <button class="ctrl-btn danger" id="btn-reset">↺ Сброс</button>
       <button class="ctrl-btn" id="btn-reload">🔄 Перезагрузить билеты</button>
@@ -500,9 +516,9 @@ function rowsToTickets(rows, viewersMap) {
   if (rows.length < 2) return [];
   const headers = rows[0].map(h => h.trim().toLowerCase());
   const idx = {
-    nick:    headers.indexOf('nick'),
-    tickets: headers.indexOf('tickets'),
-    avatar:  headers.indexOf('avatar_url'),
+    nick:    headers.indexOf('ник'),
+    tickets: headers.indexOf('билеты'),
+    avatar:  headers.indexOf('аватар'),
   };
   if (idx.nick < 0 || idx.tickets < 0) return [];
 
@@ -527,8 +543,8 @@ function rowsToTickets(rows, viewersMap) {
 function rowsToViewers(rows) {
   if (rows.length < 2) return {};
   const headers = rows[0].map(h => h.trim().toLowerCase());
-  const nickIdx = headers.indexOf('nick');
-  const avatarIdx = headers.indexOf('avatar_url');
+  const nickIdx = headers.indexOf('ник') >= 0 ? headers.indexOf('ник') : headers.indexOf('nick');
+  const avatarIdx = headers.indexOf('аватар') >= 0 ? headers.indexOf('аватар') : headers.indexOf('avatar_url');
   const steamIdx = headers.indexOf('steam_nick');
   if (nickIdx < 0) return {};
   const map = {};
@@ -575,6 +591,8 @@ let currentRotation = 0;
 let isSpinning = false;
 let duration = 5;
 let eliminationMode = false;
+let dramaMode = false;
+let dramaFinalist = null; // ник финалиста выбранного заранее в режиме "напряжение"
 let log = [];
 let soundOn = true;
 
@@ -880,10 +898,39 @@ function pickWinnerIndex() {
   return activeTickets.length - 1;
 }
 
+// Взвешенный выбор того, кто выбывает, исключая защищённый ник (финалиста)
+// Возвращает индекс в activeTickets
+function pickEliminationIndex(protectedNick) {
+  const candidates = [];
+  for (let i = 0; i < activeTickets.length; i++) {
+    if (activeTickets[i].nick !== protectedNick) {
+      candidates.push({ idx: i, score: activeTickets[i].score });
+    }
+  }
+  if (candidates.length === 0) return -1;
+
+  const total = candidates.reduce((s, c) => s + c.score, 0);
+  if (total === 0) {
+    // У всех 0 билетов — равновероятный выбор
+    const buf = new Uint32Array(1);
+    crypto.getRandomValues(buf);
+    return candidates[buf[0] % candidates.length].idx;
+  }
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  const rand = (buf[0] / 0x100000000) * total;
+  let acc = 0;
+  for (const c of candidates) {
+    acc += c.score;
+    if (rand < acc) return c.idx;
+  }
+  return candidates[candidates.length - 1].idx;
+}
+
 // Стрелка указывает ВНИЗ из верхней позиции = угол 0° (12 часов в нашей системе координат)
 const POINTER_ANGLE = 0;
 
-async function spin(callback) {
+async function spin(callback, forcedIdx) {
   if (isSpinning) return;
   if (activeTickets.length === 0) return;
   if (activeTickets.length === 1) {
@@ -895,7 +942,10 @@ async function spin(callback) {
   setControlsDisabled(true);
 
   const segments = computeSegments();
-  const winnerIdx = pickWinnerIndex();
+  // Если задан forcedIdx — колесо остановится на нём, иначе обычный взвешенный выбор
+  const winnerIdx = (typeof forcedIdx === 'number' && forcedIdx >= 0 && forcedIdx < activeTickets.length)
+    ? forcedIdx
+    : pickWinnerIndex();
   const targetCenterAngle = segments[winnerIdx].midAngle;
 
   // Хотим: (targetCenterAngle + R) % 360 === POINTER_ANGLE (== 0)
@@ -1021,6 +1071,7 @@ function triggerTick() {
 
 function setControlsDisabled(disabled) {
   document.getElementById('btn-single').disabled = disabled;
+  document.getElementById('btn-drama').disabled = disabled;
   document.getElementById('btn-elim').disabled = disabled;
   document.getElementById('btn-reset').disabled = disabled;
   document.getElementById('btn-reload').disabled = disabled;
@@ -1146,6 +1197,13 @@ document.getElementById('btn-single').addEventListener('click', () => {
     document.getElementById('elimination-status').classList.remove('active');
     document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
   }
+  if (dramaMode) {
+    if (!confirm('Активен режим напряжения. Прервать его и крутить одиночный розыгрыш?')) return;
+    dramaMode = false;
+    dramaFinalist = null;
+    document.getElementById('drama-status').classList.remove('active');
+    document.getElementById('btn-drama').textContent = '🎭 Финал в напряжении';
+  }
   spin((winnerIdx) => {
     const winner = activeTickets[winnerIdx];
     addLogEntry(winner.nick + ' (' + winner.score + ' билетов)', true);
@@ -1154,6 +1212,13 @@ document.getElementById('btn-single').addEventListener('click', () => {
 });
 
 document.getElementById('btn-elim').addEventListener('click', () => {
+  if (dramaMode) {
+    if (!confirm('Активен режим напряжения. Прервать его и переключиться на режим выбывания?')) return;
+    dramaMode = false;
+    dramaFinalist = null;
+    document.getElementById('drama-status').classList.remove('active');
+    document.getElementById('btn-drama').textContent = '🎭 Финал в напряжении';
+  }
   if (!eliminationMode) {
     eliminationMode = true;
     document.getElementById('elimination-status').classList.add('active');
@@ -1187,6 +1252,76 @@ document.getElementById('btn-elim').addEventListener('click', () => {
   });
 });
 
+document.getElementById('btn-drama').addEventListener('click', () => {
+  // Первое нажатие — определяем финалиста (взвешенно по билетам) и активируем режим
+  if (!dramaMode) {
+    if (activeTickets.length < 2) {
+      alert('Для финала в напряжении нужно минимум 2 участника.');
+      return;
+    }
+    // Если был активен обычный режим выбывания — сбрасываем
+    if (eliminationMode) {
+      eliminationMode = false;
+      document.getElementById('elimination-status').classList.remove('active');
+      document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+    }
+    const finalistIdx = pickWinnerIndex();
+    dramaFinalist = activeTickets[finalistIdx].nick;
+    dramaMode = true;
+    document.getElementById('drama-status').classList.add('active');
+    document.getElementById('btn-drama').textContent = '🎭 Крутить (напряжение)';
+    addLogEntry('🎭 Финал в напряжении начался', false);
+  }
+
+  // Если остался только финалист — он победитель
+  if (activeTickets.length === 1) {
+    const winner = activeTickets[0];
+    addLogEntry('🏆 ПОБЕДИТЕЛЬ: ' + winner.nick + ' (' + winner.score + ' билетов)', true);
+    showWinner(winner);
+    dramaMode = false;
+    dramaFinalist = null;
+    document.getElementById('drama-status').classList.remove('active');
+    document.getElementById('btn-drama').textContent = '🎭 Финал в напряжении';
+    return;
+  }
+
+  // Выбираем кого выбить (любой кроме финалиста, взвешенно по билетам)
+  const eliminationIdx = pickEliminationIndex(dramaFinalist);
+  if (eliminationIdx < 0) {
+    // Все остальные кроме финалиста уже выбыли — он победил
+    const winner = activeTickets.find(t => t.nick === dramaFinalist);
+    addLogEntry('🏆 ПОБЕДИТЕЛЬ: ' + winner.nick + ' (' + winner.score + ' билетов)', true);
+    showWinner(winner);
+    dramaMode = false;
+    dramaFinalist = null;
+    document.getElementById('drama-status').classList.remove('active');
+    document.getElementById('btn-drama').textContent = '🎭 Финал в напряжении';
+    return;
+  }
+
+  // Крутим колесо так, чтобы стрелка остановилась на том, кто выбывает
+  spin((arrivedIdx) => {
+    const eliminated = activeTickets[arrivedIdx];
+    activeTickets.splice(arrivedIdx, 1);
+    addLogEntry('💔 Выбыл: ' + eliminated.nick + ' (' + eliminated.score + ' билетов)', false);
+    updateStats();
+    renderWheel();
+
+    // Если остался только финалист — победа после короткой паузы
+    if (activeTickets.length === 1) {
+      setTimeout(() => {
+        const winner = activeTickets[0];
+        addLogEntry('🏆 ПОБЕДИТЕЛЬ: ' + winner.nick + ' (' + winner.score + ' билетов)', true);
+        showWinner(winner);
+        dramaMode = false;
+        dramaFinalist = null;
+        document.getElementById('drama-status').classList.remove('active');
+        document.getElementById('btn-drama').textContent = '🎭 Финал в напряжении';
+      }, 700);
+    }
+  }, eliminationIdx);
+});
+
 document.getElementById('btn-reset').addEventListener('click', () => {
   if (!confirm('Сбросить розыгрыш? Все выбывшие вернутся, лог очистится.')) return;
   activeTickets = [...allTickets];
@@ -1196,6 +1331,10 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   eliminationMode = false;
   document.getElementById('elimination-status').classList.remove('active');
   document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+  dramaMode = false;
+  dramaFinalist = null;
+  document.getElementById('drama-status').classList.remove('active');
+  document.getElementById('btn-drama').textContent = '🎭 Финал в напряжении';
   currentRotation = 0;
   const group = document.getElementById('wheel').querySelector('#wheel-group');
   if (group) {
@@ -1220,6 +1359,10 @@ document.getElementById('btn-reload').addEventListener('click', async () => {
     eliminationMode = false;
     document.getElementById('elimination-status').classList.remove('active');
     document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+    dramaMode = false;
+    dramaFinalist = null;
+    document.getElementById('drama-status').classList.remove('active');
+    document.getElementById('btn-drama').textContent = '🎭 Финал в напряжении';
     currentRotation = 0;
     const group = document.getElementById('wheel').querySelector('#wheel-group');
     if (group) {
