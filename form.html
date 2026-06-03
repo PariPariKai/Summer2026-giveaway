@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Выдача билетов</title>
+<meta name="robots" content="noindex,nofollow">
+
+<!-- ============================================================
+     ⚙ НАСТРОЙКА ⚙
+     ============================================================ -->
+<script>
+  // URL Apps Script Web App (получишь после deploy)
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzZmmW60G6Wfro8LEf7RJaaRmyPOW4uRhLS0AF3LqmnagL_T9__sqgJW5MakOjiIDw/exec";
+
+  // SHA-256 хэш пароля. Должен совпадать с PASSWORD_HASH в apps_script.gs
+  const PASSWORD_HASH = "1b3367c6e6a88fb387686831e77be322251ff205e2abea42e45168b6ed1a8725";
+
+  // CSV-ссылки на листы (для автодополнения и аватарок)
+  const VIEWERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pub?gid=222000001&single=true&output=csv";
+  const CONFIG_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pub?gid=222000002&single=true&output=csv";
+</script>
+
+<style>
+  :root {
+    --ocean-deep:    #0c4a6e;
+    --ocean-mid:     #0891b2;
+    --coral:         #fb923c;
+    --coral-light:   #fdba74;
+    --sand:          #fef3c7;
+
+    --ppk-color:     #06b6d4;
+    --ppk-bg:        rgba(6, 182, 212, 0.15);
+    --ppk-border:    rgba(6, 182, 212, 0.5);
+    --ppk-glow:      rgba(6, 182, 212, 0.35);
+
+    --ilyich-color:  #10b981;
+    --ilyich-bg:     rgba(16, 185, 129, 0.15);
+    --ilyich-border: rgba(16, 185, 129, 0.5);
+    --ilyich-glow:   rgba(16, 185, 129, 0.35);
+
+    --dipsy-color:   #a78bfa;
+    --dipsy-bg:      rgba(167, 139, 250, 0.15);
+    --dipsy-border:  rgba(167, 139, 250, 0.55);
+    --dipsy-glow:    rgba(167, 139, 250, 0.4);
+
+    --text:        #f0f9ff;
+    --text-dim:    rgba(240, 249, 255, 0.6);
+    --text-faint:  rgba(240, 249, 255, 0.35);
+    --card-bg:     rgba(8, 47, 73, 0.55);
+    --card-border: rgba(34, 211, 238, 0.18);
+
+    /* Динамические — меняются при выборе стримера */
+    --active-color: var(--coral);
+    --active-glow: transparent;
+    --active-tint: transparent;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background:
+      linear-gradient(180deg, #082f49 0%, #0c4a6e 35%, #0891b2 70%, #67e8f9 92%, #fef3c7 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--text);
+    padding: 20px;
+    position: relative;
+    overflow-x: hidden;
+    transition: background 0.4s ease;
+  }
+
+  /* Цветовая "пелена" по всей странице в цвете стримера */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: var(--active-tint, transparent);
+    pointer-events: none;
+    z-index: 0;
+    transition: background 0.35s ease;
+  }
+
+  /* Боковые "столбы" свечения */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      linear-gradient(90deg, var(--active-glow, transparent) 0%, transparent 8%, transparent 92%, var(--active-glow, transparent) 100%);
+    pointer-events: none;
+    z-index: 0;
+    transition: background 0.35s ease;
+  }
+
+  body.streamer-ppk    { --active-tint: radial-gradient(ellipse at top, rgba(6, 182, 212, 0.10), transparent 50%); --active-glow: rgba(6, 182, 212, 0.18); --active-color: var(--ppk-color); }
+  body.streamer-ilyich { --active-tint: radial-gradient(ellipse at top, rgba(16, 185, 129, 0.10), transparent 50%); --active-glow: rgba(16, 185, 129, 0.18); --active-color: var(--ilyich-color); }
+  body.streamer-dipsy  { --active-tint: radial-gradient(ellipse at top, rgba(167, 139, 250, 0.10), transparent 50%); --active-glow: rgba(167, 139, 250, 0.22); --active-color: var(--dipsy-color); }
+
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ===== Экран входа (пароль) ===== */
+  .gate {
+    margin-top: 14vh;
+    text-align: center;
+    padding: 20px;
+  }
+  .gate-title {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--coral-light);
+    margin-bottom: 10px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.4);
+  }
+  .gate-subtitle {
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: var(--sand);
+    text-transform: uppercase;
+    margin-bottom: 36px;
+  }
+  .gate-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .gate-input {
+    background: rgba(8, 47, 73, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 16px;
+    width: 280px;
+    max-width: 100%;
+    text-align: center;
+    letter-spacing: 4px;
+    outline: none;
+    transition: all 0.15s ease;
+  }
+  .gate-input:focus {
+    border-color: var(--coral-light);
+    background: rgba(8, 47, 73, 0.8);
+    box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.15);
+  }
+  .gate-button {
+    background: linear-gradient(135deg, var(--coral), var(--coral-light));
+    color: #1a1a2e;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 12px 32px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .gate-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(251, 146, 60, 0.35);
+  }
+  .gate-error {
+    color: #fca5a5;
+    font-size: 13px;
+    min-height: 18px;
+    margin-top: 6px;
+  }
+
+  /* ===== Основной экран ===== */
+  .app { display: none; padding-top: 8px; }
+  .app.active { display: block; }
+
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+  }
+  .top-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.5px;
+  }
+  .top-title-accent {
+    color: var(--active-color);
+    transition: color 0.3s ease;
+  }
+  .logout-btn {
+    background: transparent;
+    color: var(--text-faint);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.15s ease;
+  }
+  .logout-btn:hover { color: var(--coral-light); border-color: var(--coral-light); }
+
+  /* ===== Блок выбора стримера ===== */
+  .field { margin-bottom: 22px; }
+  .field-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-left: 4px;
+  }
+
+  .streamers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .streamer-card {
+    background: rgba(8, 47, 73, 0.55);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 14px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    position: relative;
+    opacity: 0.55;
+  }
+  .streamer-card.active {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+  .streamer-card.active.s-ppk    { border-color: var(--ppk-border);    background: linear-gradient(135deg, var(--ppk-bg), rgba(8,47,73,0.55)); box-shadow: 0 0 0 2px var(--ppk-color), 0 10px 28px var(--ppk-glow); }
+  .streamer-card.active.s-ilyich { border-color: var(--ilyich-border); background: linear-gradient(135deg, var(--ilyich-bg), rgba(8,47,73,0.55)); box-shadow: 0 0 0 2px var(--ilyich-color), 0 10px 28px var(--ilyich-glow); }
+  .streamer-card.active.s-dipsy  { border-color: var(--dipsy-border);  background: linear-gradient(135deg, var(--dipsy-bg), rgba(8,47,73,0.55)); box-shadow: 0 0 0 2px var(--dipsy-color), 0 10px 28px var(--dipsy-glow); }
+  .streamer-card:hover:not(.active) { opacity: 0.85; }
+
+  .streamer-avatar {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    border: 2px solid;
+    background-size: cover; background-position: center;
+    background-color: rgba(8, 47, 73, 0.6);
+    margin: 0 auto 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 500;
+  }
+  .streamer-card.s-ppk .streamer-avatar    { border-color: var(--ppk-color); color: var(--ppk-color); }
+  .streamer-card.s-ilyich .streamer-avatar { border-color: var(--ilyich-color); color: var(--ilyich-color); }
+  .streamer-card.s-dipsy .streamer-avatar  { border-color: var(--dipsy-color); color: var(--dipsy-color); }
+  .streamer-nick { font-size: 13px; font-weight: 500; }
+
+  .check-icon {
+    position: absolute;
+    top: 6px; right: 8px;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .streamer-card.active .check-icon { opacity: 1; }
+  .streamer-card.active.s-ppk .check-icon    { color: var(--ppk-color); }
+  .streamer-card.active.s-ilyich .check-icon { color: var(--ilyich-color); }
+  .streamer-card.active.s-dipsy .check-icon  { color: var(--dipsy-color); }
+
+  /* ===== Поля ввода ===== */
+  .input,
+  .select {
+    width: 100%;
+    background: rgba(8, 47, 73, 0.55);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.15s ease;
+  }
+  .input:focus,
+  .select:focus {
+    border-color: var(--active-color);
+    background: rgba(8, 47, 73, 0.75);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+  }
+  .input::placeholder { color: var(--text-faint); }
+
+  .select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23fdba74' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 40px;
+    cursor: pointer;
+  }
+  .select option { background: #0c4a6e; color: var(--text); }
+
+  /* ===== Автодополнение ===== */
+  .autocomplete-wrap { position: relative; }
+  .autocomplete-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: rgba(8, 47, 73, 0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    overflow: hidden;
+    z-index: 10;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    display: none;
+  }
+  .autocomplete-list.active { display: block; }
+  .autocomplete-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.12s ease;
+    border-bottom: 1px solid rgba(34, 211, 238, 0.08);
+  }
+  .autocomplete-item:last-child { border-bottom: none; }
+  .autocomplete-item:hover,
+  .autocomplete-item.highlight { background: rgba(251, 146, 60, 0.15); }
+  .autocomplete-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background-size: cover; background-position: center;
+    background-color: rgba(8, 47, 73, 0.8);
+    border: 1px solid var(--card-border);
+    flex-shrink: 0;
+  }
+  .autocomplete-nick { font-size: 14px; color: var(--text); }
+
+  .new-nick-warning {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(253, 224, 71, 0.12);
+    border: 1px solid rgba(253, 224, 71, 0.4);
+    border-radius: 8px;
+    font-size: 12px;
+    color: #fde68a;
+    display: none;
+  }
+  .new-nick-warning.active { display: block; }
+
+  /* ===== Количество ===== */
+  .count-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .count-btn {
+    background: rgba(8, 47, 73, 0.55);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+    color: var(--text);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+  }
+  .count-btn:hover { background: rgba(8, 47, 73, 0.75); border-color: var(--coral-light); }
+  .count-btn:active { transform: scale(0.95); }
+  .count-input {
+    flex: 1;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ===== Кнопка отправки ===== */
+  .submit-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--coral), var(--coral-light));
+    color: #1a1a2e;
+    font-weight: 600;
+    font-size: 16px;
+    padding: 16px 24px;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    letter-spacing: 1.5px;
+    margin-top: 4px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    text-transform: uppercase;
+  }
+  .submit-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(251, 146, 60, 0.4);
+  }
+  .submit-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* ===== Уведомления ===== */
+  .notice {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    display: none;
+    backdrop-filter: blur(10px);
+    line-height: 1.5;
+  }
+  .notice.success {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.5);
+    color: #6ee7b7;
+    display: block;
+  }
+  .notice.error {
+    background: rgba(248, 113, 113, 0.15);
+    border: 1px solid rgba(248, 113, 113, 0.5);
+    color: #fca5a5;
+    display: block;
+  }
+  .notice.loading {
+    background: rgba(34, 211, 238, 0.12);
+    border: 1px solid rgba(34, 211, 238, 0.4);
+    color: #67e8f9;
+    display: block;
+  }
+
+  .last-entries {
+    margin-top: 24px;
+    padding: 14px 16px;
+    background: rgba(8, 47, 73, 0.35);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+  }
+  .last-entries-title {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .last-entries-list { display: flex; flex-direction: column; gap: 6px; }
+  .last-entry {
+    font-size: 13px;
+    color: var(--text-dim);
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(34, 211, 238, 0.06);
+  }
+  .last-entry:last-child { border-bottom: none; }
+  .last-entry-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  @media (max-width: 600px) {
+    .gate-title { font-size: 26px; }
+    .streamer-avatar { width: 50px; height: 50px; font-size: 17px; }
+    .streamer-nick { font-size: 12px; }
+  }
+</style>
+</head>
+
+<body>
+  <div class="wrap">
+
+    <!-- ===== Экран входа ===== -->
+    <div id="gate" class="gate">
+      <h1 class="gate-title">🌊 Защищённый вход</h1>
+      <p class="gate-subtitle">Выдача билетов · Лето 2026</p>
+      <form id="gate-form" class="gate-form" onsubmit="return false;">
+        <input id="gate-input" class="gate-input" type="password" placeholder="Код доступа" autocomplete="off">
+        <button id="gate-submit" class="gate-button" type="submit">Войти</button>
+        <div id="gate-error" class="gate-error"></div>
+      </form>
+    </div>
+
+    <!-- ===== Главный экран ===== -->
+    <div id="app" class="app">
+      <div class="top-bar">
+        <div class="top-title">🎟️ Билеты · <span id="active-streamer-label" class="top-title-accent">не выбрано</span></div>
+        <button id="logout-btn" class="logout-btn">Выйти</button>
+      </div>
+
+      <!-- Выбор стримера -->
+      <div class="field">
+        <div class="field-label">Я — стример</div>
+        <div class="streamers" id="streamers"></div>
+      </div>
+
+      <!-- Ник -->
+      <div class="field">
+        <div class="field-label">Ник зрителя</div>
+        <div class="autocomplete-wrap">
+          <input id="nick-input" class="input" type="text" placeholder="Начни печатать..." autocomplete="off">
+          <div id="autocomplete-list" class="autocomplete-list"></div>
+        </div>
+        <div id="new-nick-warning" class="new-nick-warning">
+          ⚠️ Этого ника нет в списке Viewers. Добавь его туда после, чтобы появилась аватарка на сайте.
+        </div>
+      </div>
+
+      <!-- Источник -->
+      <div class="field">
+        <div class="field-label">Источник билетов</div>
+        <select id="source-select" class="select">
+          <option value="">— выбери —</option>
+          <optgroup label="🟡 Золотые">
+            <option value="🟡 Сабка / донат 100₽">🟡 Сабка / донат 100₽</option>
+            <option value="🟡 Покупка золота за 10000 баллов">🟡 Покупка золота за 10000 баллов</option>
+            <option value="🟡 Золотая рулетка">🟡 Золотая рулетка</option>
+            <option value="🟡 Топ чатерс недели">🟡 Топ чатерс недели</option>
+            <option value="🟡 Топ чатерс месяца">🟡 Топ чатерс месяца</option>
+            <option value="🟡 Топ онлайн недели">🟡 Топ онлайн недели</option>
+            <option value="🟡 Топ онлайн месяца">🟡 Топ онлайн месяца</option>
+            <option value="🟡 Топ донатер недели">🟡 Топ донатер недели</option>
+            <option value="🟡 Топ донатер месяца">🟡 Топ донатер месяца</option>
+            <option value="🟡 Топ клип месяца">🟡 Топ клип месяца</option>
+          </optgroup>
+          <optgroup label="⚪ Серебряные">
+            <option value="⚪ Ранняя пташка (1 балл)">⚪ Ранняя пташка (1 балл)</option>
+            <option value="⚪ Покупка серебра за 2000 баллов">⚪ Покупка серебра за 2000 баллов</option>
+            <option value="⚪ Рулетка">⚪ Рулетка</option>
+            <option value="⚪ Победа в активности">⚪ Победа в активности</option>
+            <option value="⚪ Прогноз да/нет">⚪ Прогноз да/нет</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <!-- Количество -->
+      <div class="field">
+        <div class="field-label">Количество</div>
+        <div class="count-row">
+          <button type="button" class="count-btn" id="count-minus">−</button>
+          <input id="count-input" class="input count-input" type="number" min="1" max="100" value="1">
+          <button type="button" class="count-btn" id="count-plus">+</button>
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <button id="submit-btn" class="submit-btn" disabled>Выдать билет</button>
+
+      <!-- Уведомление -->
+      <div id="notice" class="notice"></div>
+
+      <!-- Последние записи в этой сессии -->
+      <div id="last-entries" class="last-entries" style="display:none;">
+        <div class="last-entries-title">Последние выдачи в этой сессии</div>
+        <div id="last-entries-list" class="last-entries-list"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ============================================================
+// Утилиты
+// ============================================================
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], n = text[i + 1];
+    if (inQ) {
+      if (c === '"' && n === '"') { cell += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else cell += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { row.push(cell); cell = ''; }
+      else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+      else if (c === '\r') {}
+      else cell += c;
+    }
+  }
+  if (cell.length > 0 || row.length > 0) { row.push(cell); if (row.some(c => c.length > 0)) rows.push(row); }
+  return rows;
+}
+
+function initials(nick) {
+  const clean = nick.replace(/[^A-Za-zА-Яа-я0-9]/g, '');
+  if (clean.length >= 2) return (clean[0] + clean[1]).toUpperCase();
+  return (clean[0] || '?').toUpperCase();
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ============================================================
+// Стримеры (из Config или дефолт)
+// ============================================================
+const STREAMER_SLOTS = [
+  { id: 'PariPariKai', klass: 's-ppk',    bodyClass: 'streamer-ppk' },
+  { id: 'Ilyich116',   klass: 's-ilyich', bodyClass: 'streamer-ilyich' },
+  { id: 'd1psy_off',   klass: 's-dipsy',  bodyClass: 'streamer-dipsy' },
+];
+
+let streamerData = {
+  'PariPariKai': { nick: 'PariPariKai', avatar: '' },
+  'Ilyich116':   { nick: 'Ilyich116',   avatar: '' },
+  'd1psy_off':   { nick: 'd1psy_off',   avatar: '' },
+};
+
+let viewersList = []; // [{nick, avatar}]
+let selectedStreamer = null;
+let sessionEntries = []; // последние выдачи в этой сессии
+
+// ============================================================
+// Загрузка Viewers и Config
+// ============================================================
+async function loadViewers() {
+  try {
+    const res = await fetch(VIEWERS_CSV_URL);
+    if (!res.ok) return;
+    const rows = parseCSV(await res.text());
+    if (rows.length < 2) return;
+    const headers = rows[0].map(h => h.trim().toLowerCase());
+    const nickIdx = headers.indexOf('ник') >= 0 ? headers.indexOf('ник') : headers.indexOf('nick');
+    const avatarIdx = headers.indexOf('аватар') >= 0 ? headers.indexOf('аватар') : headers.indexOf('avatar_url');
+    if (nickIdx < 0) return;
+    viewersList = rows.slice(1)
+      .filter(r => r.length > 0 && r[nickIdx] && r[nickIdx].trim())
+      .map(r => ({
+        nick: r[nickIdx].trim(),
+        avatar: avatarIdx >= 0 ? (r[avatarIdx] || '').trim() : ''
+      }));
+  } catch (e) { console.error('Viewers load failed', e); }
+}
+
+async function loadConfig() {
+  if (!CONFIG_CSV_URL || CONFIG_CSV_URL.startsWith('PASTE_')) return;
+  try {
+    const res = await fetch(CONFIG_CSV_URL);
+    if (!res.ok) return;
+    const rows = parseCSV(await res.text());
+    if (rows.length < 2) return;
+    const headers = rows[0].map(h => h.trim().toLowerCase());
+    const keyIdx = headers.indexOf('key');
+    const valIdx = headers.indexOf('value');
+    if (keyIdx < 0 || valIdx < 0) return;
+    const config = {};
+    rows.slice(1).forEach(r => {
+      if (r[keyIdx]) config[r[keyIdx].trim().toLowerCase()] = (r[valIdx] || '').trim();
+    });
+    // Карты streamer1/2/3 → PariPariKai/Ilyich116/d1psy_off
+    const slots = ['PariPariKai', 'Ilyich116', 'd1psy_off'];
+    for (let i = 1; i <= 3; i++) {
+      const nick = config[`streamer${i}_nick`];
+      const avatar = config[`streamer${i}_avatar_url`];
+      if (nick && streamerData[nick]) {
+        streamerData[nick].avatar = avatar || '';
+      } else if (nick && slots[i-1]) {
+        // Если ник в Config отличается от стандартного — переименуем (не должно случаться, но на всякий)
+        streamerData[slots[i-1]] = { nick: nick, avatar: avatar || '' };
+      }
+    }
+  } catch (e) { console.error('Config load failed', e); }
+}
+
+// ============================================================
+// Рендер карточек стримеров
+// ============================================================
+function renderStreamers() {
+  const container = document.getElementById('streamers');
+  container.innerHTML = STREAMER_SLOTS.map(slot => {
+    const s = streamerData[slot.id];
+    const avatarHtml = s.avatar
+      ? `<div class="streamer-avatar" style="background-image:url('${esc(s.avatar)}');"></div>`
+      : `<div class="streamer-avatar">${esc(initials(s.nick))}</div>`;
+    return `
+      <div class="streamer-card ${slot.klass}" data-id="${esc(slot.id)}" data-body="${slot.bodyClass}">
+        ${avatarHtml}
+        <div class="streamer-nick">${esc(s.nick)}</div>
+        <div class="check-icon">✓</div>
+      </div>
+    `;
+  }).join('');
+
+  // Обработчики кликов
+  document.querySelectorAll('.streamer-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const id = card.dataset.id;
+      const bodyClass = card.dataset.body;
+      selectStreamer(id, bodyClass);
+    });
+  });
+}
+
+function selectStreamer(id, bodyClass) {
+  selectedStreamer = id;
+  // Снимаем active со всех, ставим только на выбранный
+  document.querySelectorAll('.streamer-card').forEach(c => {
+    c.classList.toggle('active', c.dataset.id === id);
+  });
+  // Подсветка всей страницы
+  document.body.classList.remove('streamer-ppk', 'streamer-ilyich', 'streamer-dipsy');
+  document.body.classList.add(bodyClass);
+  // Лейбл в шапке
+  document.getElementById('active-streamer-label').textContent = streamerData[id].nick;
+  // Сохраним последний выбор
+  try { localStorage.setItem('last_streamer', id); } catch(e) {}
+  updateSubmitState();
+}
+
+// ============================================================
+// Автодополнение ника
+// ============================================================
+const nickInput = document.getElementById('nick-input');
+const acList = document.getElementById('autocomplete-list');
+const newNickWarning = document.getElementById('new-nick-warning');
+let acHighlightIdx = -1;
+
+function updateAutocomplete() {
+  const q = nickInput.value.trim().toLowerCase();
+  acHighlightIdx = -1;
+
+  // Если поле пустое — скрыть всё
+  if (!q) {
+    acList.classList.remove('active');
+    newNickWarning.classList.remove('active');
+    updateSubmitState();
+    return;
+  }
+
+  // Поиск по подстроке
+  const matches = viewersList
+    .filter(v => v.nick.toLowerCase().includes(q))
+    .slice(0, 5);
+
+  if (matches.length === 0) {
+    acList.classList.remove('active');
+    // Проверим — есть ли точное совпадение
+    const exact = viewersList.find(v => v.nick.toLowerCase() === q);
+    if (!exact) newNickWarning.classList.add('active');
+    else newNickWarning.classList.remove('active');
+  } else {
+    // Если первый матч — точное совпадение, не показываем warning
+    const exact = viewersList.find(v => v.nick.toLowerCase() === q);
+    newNickWarning.classList.toggle('active', !exact);
+
+    acList.innerHTML = matches.map((v, i) => {
+      const avatarStyle = v.avatar ? `background-image:url('${esc(v.avatar)}');` : '';
+      return `
+        <div class="autocomplete-item" data-nick="${esc(v.nick)}" data-idx="${i}">
+          <div class="autocomplete-avatar" style="${avatarStyle}"></div>
+          <div class="autocomplete-nick">${esc(v.nick)}</div>
+        </div>
+      `;
+    }).join('');
+    acList.classList.add('active');
+
+    acList.querySelectorAll('.autocomplete-item').forEach(item => {
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        nickInput.value = item.dataset.nick;
+        acList.classList.remove('active');
+        newNickWarning.classList.remove('active');
+        updateSubmitState();
+      });
+    });
+  }
+
+  updateSubmitState();
+}
+
+nickInput.addEventListener('input', updateAutocomplete);
+nickInput.addEventListener('focus', updateAutocomplete);
+nickInput.addEventListener('blur', () => {
+  setTimeout(() => acList.classList.remove('active'), 150);
+});
+
+nickInput.addEventListener('keydown', (e) => {
+  const items = acList.querySelectorAll('.autocomplete-item');
+  if (e.key === 'ArrowDown' && items.length) {
+    e.preventDefault();
+    acHighlightIdx = Math.min(acHighlightIdx + 1, items.length - 1);
+    items.forEach((it, i) => it.classList.toggle('highlight', i === acHighlightIdx));
+  } else if (e.key === 'ArrowUp' && items.length) {
+    e.preventDefault();
+    acHighlightIdx = Math.max(acHighlightIdx - 1, 0);
+    items.forEach((it, i) => it.classList.toggle('highlight', i === acHighlightIdx));
+  } else if (e.key === 'Enter' && acHighlightIdx >= 0 && items[acHighlightIdx]) {
+    e.preventDefault();
+    nickInput.value = items[acHighlightIdx].dataset.nick;
+    acList.classList.remove('active');
+    newNickWarning.classList.remove('active');
+    updateSubmitState();
+  }
+});
+
+// ============================================================
+// Количество (+/−)
+// ============================================================
+const countInput = document.getElementById('count-input');
+document.getElementById('count-minus').addEventListener('click', () => {
+  const v = parseInt(countInput.value, 10) || 1;
+  countInput.value = Math.max(1, v - 1);
+  updateSubmitState();
+});
+document.getElementById('count-plus').addEventListener('click', () => {
+  const v = parseInt(countInput.value, 10) || 1;
+  countInput.value = Math.min(100, v + 1);
+  updateSubmitState();
+});
+countInput.addEventListener('input', updateSubmitState);
+document.getElementById('source-select').addEventListener('change', updateSubmitState);
+
+// ============================================================
+// Submit
+// ============================================================
+function updateSubmitState() {
+  const nick = nickInput.value.trim();
+  const source = document.getElementById('source-select').value;
+  const count = parseInt(countInput.value, 10);
+  const ok = selectedStreamer && nick.length > 0 && source && count >= 1 && count <= 100;
+  document.getElementById('submit-btn').disabled = !ok;
+}
+
+const submitBtn = document.getElementById('submit-btn');
+const notice = document.getElementById('notice');
+
+async function submitTicket() {
+  if (submitBtn.disabled) return;
+
+  const streamer = selectedStreamer;
+  const nick = nickInput.value.trim();
+  const source = document.getElementById('source-select').value;
+  const count = parseInt(countInput.value, 10);
+
+  submitBtn.disabled = true;
+  showNotice('loading', '⏳ Отправляю...');
+
+  try {
+    const passwordHash = await sha256(currentPassword);
+    const payload = {
+      passwordHash: passwordHash,
+      streamer: streamer,
+      nick: nick,
+      source: source,
+      count: count,
+    };
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      // Apps Script не любит preflight CORS — используем text/plain
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    });
+
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    const data = await res.json();
+
+    if (!data.ok) {
+      showNotice('error', '❌ ' + (data.message || 'Ошибка сервера'));
+      submitBtn.disabled = false;
+      return;
+    }
+
+    // Успех!
+    showNotice('success', `✓ Выдано: ${count} билет(ов) · ${nick} · ${source}`);
+    addSessionEntry({ streamer: streamer, nick: nick, source: source, count: count });
+
+    // Сбросить поля (стримера оставляем)
+    nickInput.value = '';
+    document.getElementById('source-select').value = '';
+    countInput.value = '1';
+    newNickWarning.classList.remove('active');
+    acList.classList.remove('active');
+    updateSubmitState();
+    nickInput.focus();
+
+    // Через 5 секунд скрыть уведомление
+    setTimeout(() => {
+      if (notice.classList.contains('success')) hideNotice();
+    }, 5000);
+
+  } catch (err) {
+    showNotice('error', '❌ Ошибка сети: ' + err.message);
+    submitBtn.disabled = false;
+  }
+}
+
+submitBtn.addEventListener('click', submitTicket);
+
+function showNotice(type, text) {
+  notice.className = 'notice ' + type;
+  notice.textContent = text;
+}
+function hideNotice() {
+  notice.className = 'notice';
+  notice.textContent = '';
+}
+
+// ============================================================
+// Лог последних выдач в сессии
+// ============================================================
+function addSessionEntry(entry) {
+  sessionEntries.unshift(entry);
+  if (sessionEntries.length > 6) sessionEntries.pop();
+  renderSessionEntries();
+}
+
+function renderSessionEntries() {
+  const wrap = document.getElementById('last-entries');
+  const list = document.getElementById('last-entries-list');
+  if (sessionEntries.length === 0) {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'block';
+
+  const colorMap = {
+    'PariPariKai': 'var(--ppk-color)',
+    'Ilyich116':   'var(--ilyich-color)',
+    'd1psy_off':   'var(--dipsy-color)',
+  };
+
+  list.innerHTML = sessionEntries.map(e => `
+    <div class="last-entry">
+      <span class="last-entry-dot" style="background:${colorMap[e.streamer]};"></span>
+      <strong>${esc(e.nick)}</strong> · ${esc(e.source)} · ×${e.count}
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// Авторизация
+// ============================================================
+let currentPassword = null;
+
+async function tryLogin(password) {
+  const hash = await sha256(password);
+  if (hash === PASSWORD_HASH) {
+    currentPassword = password;
+    try { localStorage.setItem('form_auth', password); } catch(e) {}
+    enterApp();
+    return true;
+  }
+  return false;
+}
+
+async function enterApp() {
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('app').classList.add('active');
+
+  // Загружаем данные
+  await Promise.all([loadConfig(), loadViewers()]);
+  renderStreamers();
+
+  // Восстанавливаем последний выбор стримера
+  let lastStreamer = null;
+  try { lastStreamer = localStorage.getItem('last_streamer'); } catch(e) {}
+  if (lastStreamer && streamerData[lastStreamer]) {
+    const slot = STREAMER_SLOTS.find(s => s.id === lastStreamer);
+    if (slot) selectStreamer(lastStreamer, slot.bodyClass);
+  }
+
+  nickInput.focus();
+}
+
+// Логин по форме
+document.getElementById('gate-submit').addEventListener('click', async () => {
+  const input = document.getElementById('gate-input');
+  const errorEl = document.getElementById('gate-error');
+  errorEl.textContent = '';
+  const pw = input.value.trim();
+  if (!pw) return;
+
+  if (!PASSWORD_HASH || PASSWORD_HASH.startsWith('PASTE_')) {
+    errorEl.textContent = 'Не настроен PASSWORD_HASH в коде';
+    return;
+  }
+
+  const ok = await tryLogin(pw);
+  if (!ok) {
+    errorEl.textContent = 'Неверный код';
+    input.value = '';
+    input.focus();
+  }
+});
+
+document.getElementById('gate-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('gate-submit').click();
+});
+
+// Logout
+document.getElementById('logout-btn').addEventListener('click', () => {
+  if (!confirm('Выйти из защищённой формы? Придётся снова ввести код.')) return;
+  try { localStorage.removeItem('form_auth'); } catch(e) {}
+  currentPassword = null;
+  document.body.classList.remove('streamer-ppk', 'streamer-ilyich', 'streamer-dipsy');
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('gate').style.display = 'block';
+  document.getElementById('gate-input').value = '';
+  document.getElementById('gate-input').focus();
+});
+
+// Автологин из localStorage
+(async () => {
+  try {
+    const saved = localStorage.getItem('form_auth');
+    if (saved) {
+      const ok = await tryLogin(saved);
+      if (!ok) localStorage.removeItem('form_auth');
+    }
+  } catch(e) {}
+  document.getElementById('gate-input').focus();
+})();
+</script>
+</body>
+</html>
