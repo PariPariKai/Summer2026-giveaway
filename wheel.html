@@ -787,16 +787,25 @@ document.getElementById('gate-input').addEventListener('keydown', e => {
 });
 
 // ============================================================
+// Вес билета для текущего режима.
+// Обычный режим: вес = билеты (больше билетов — больше сектор и шанс выиграть).
+// Режим выбывания: вес = 1/билеты (меньше билетов — больше сектор и шанс вылететь).
+// ============================================================
+function ticketWeight(t) {
+  return eliminationMode ? 1 / Math.max(t.score, 1) : t.score;
+}
+
+// ============================================================
 // Расчёт углов секторов
 // Возвращает массив { ticket, startAngle, endAngle, midAngle, angle }
 // ============================================================
 function computeSegments() {
-  const totalScore = activeTickets.reduce((s, t) => s + t.score, 0);
-  if (totalScore === 0) return [];
+  const totalWeight = activeTickets.reduce((s, t) => s + ticketWeight(t), 0);
+  if (totalWeight === 0) return [];
   const MIN_ANGLE = 1.5;
   let segments = activeTickets.map(t => ({
     ticket: t,
-    angle: (t.score / totalScore) * 360,
+    angle: (ticketWeight(t) / totalWeight) * 360,
   }));
   const tooThin = segments.filter(s => s.angle < MIN_ANGLE);
   if (tooThin.length > 0 && tooThin.length < segments.length) {
@@ -884,7 +893,8 @@ function sectorPath(cx, cy, r, startAngle, endAngle) {
 // Логика розыгрыша
 // ============================================================
 function pickWinnerIndex() {
-  const total = activeTickets.reduce((s, t) => s + t.score, 0);
+  // Вес зависит от режима (см. ticketWeight) — сектор на колесе и вероятность всегда совпадают
+  const total = activeTickets.reduce((s, t) => s + ticketWeight(t), 0);
   if (total === 0) return -1;
   // Криптографически стойкий рандом вместо Math.random()
   const buf = new Uint32Array(1);
@@ -892,7 +902,7 @@ function pickWinnerIndex() {
   const rand = (buf[0] / 0x100000000) * total;
   let acc = 0;
   for (let i = 0; i < activeTickets.length; i++) {
-    acc += activeTickets[i].score;
+    acc += ticketWeight(activeTickets[i]);
     if (rand < acc) return i;
   }
   return activeTickets.length - 1;
@@ -1196,6 +1206,7 @@ document.getElementById('btn-single').addEventListener('click', () => {
     eliminationMode = false;
     document.getElementById('elimination-status').classList.remove('active');
     document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+    renderWheel(); // вернуть обычные пропорции секторов перед прокруткой
   }
   if (dramaMode) {
     if (!confirm('Активен режим напряжения. Прервать его и крутить одиночный розыгрыш?')) return;
@@ -1223,6 +1234,7 @@ document.getElementById('btn-elim').addEventListener('click', () => {
     eliminationMode = true;
     document.getElementById('elimination-status').classList.add('active');
     document.getElementById('btn-elim').textContent = '⚔ Крутить (выбывание)';
+    renderWheel(); // перерисовать с обратными весами: меньше билетов — больше сектор
   }
   spin((eliminatedIdx) => {
     const eliminated = activeTickets[eliminatedIdx];
@@ -1264,6 +1276,7 @@ document.getElementById('btn-drama').addEventListener('click', () => {
       eliminationMode = false;
       document.getElementById('elimination-status').classList.remove('active');
       document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+      renderWheel(); // вернуть обычные пропорции секторов
     }
     const finalistIdx = pickWinnerIndex();
     dramaFinalist = activeTickets[finalistIdx].nick;
