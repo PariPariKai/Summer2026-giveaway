@@ -748,8 +748,8 @@ function renderStreamers(config) {
 function streamerBlock(klass, gold, silver) {
   const goldHtml = `<div class="sb-tier gold" title="Золото — без лимита">🟡 ${gold}</div>`;
   const silverHtml = `
-    <div class="sb-tier silver" title="Серебро — лимит 100">
-      ⚪ ${silver}<span class="sb-cap">/100</span>
+    <div class="sb-tier silver" title="Серебро — лимит 50">
+      ⚪ ${silver}<span class="sb-cap">/50</span>
     </div>
   `;
   return `<div class="streamer-block ${klass}">${goldHtml}${silverHtml}</div>`;
