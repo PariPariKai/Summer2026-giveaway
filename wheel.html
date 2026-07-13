@@ -231,12 +231,13 @@
 
   /* ===== Лог (история розыгрыша) ===== */
   .log {
-    flex: 0 0 300px;
+    flex: 0 0 360px;
     background: rgba(0,0,0,0.3);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 8px; padding: 14px;
     max-height: 640px;
-    overflow-y: auto; display: none;
+    overflow-y: auto; overflow-x: hidden;
+    display: none;
     position: sticky; top: 20px;
   }
   .log.has-entries { display: block; }
@@ -266,9 +267,55 @@
     transform-origin: center left;
   }
 
+  /* ===== Панель финалистов (появляется при ≤5 участниках) ===== */
+  .finalists {
+    flex: 0 0 260px;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,215,0,0.3);
+    border-radius: 8px; padding: 16px;
+    display: none;
+    position: sticky; top: 20px;
+  }
+  @keyframes finalistsIn {
+    0%   { transform: scale(0.5); opacity: 0; }
+    60%  { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .finalists.active {
+    display: block;
+    animation: finalistsIn 0.7s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+  }
+  .finalists-title {
+    text-align: center; color: #ffd700;
+    font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+    margin-bottom: 14px;
+    text-shadow: 0 0 14px rgba(255,215,0,0.4);
+  }
+  .finalist {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 12px; border-radius: 6px; margin-bottom: 6px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid transparent;
+    font-size: 14px; transition: all 0.4s ease;
+  }
+  .finalist .fin-nick {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .finalist .fin-score { color: rgba(255,255,255,0.5); font-size: 12px; margin-left: 8px; flex-shrink: 0; }
+  .finalist.out {
+    opacity: 0.4; text-decoration: line-through; filter: grayscale(1);
+  }
+  .finalist.champ {
+    background: rgba(255,215,0,0.16);
+    border-color: rgba(255,215,0,0.55);
+    color: #ffd700; font-weight: 600;
+    box-shadow: 0 0 18px rgba(255,215,0,0.25);
+  }
+
   @media (max-width: 900px) {
     .main-row { flex-direction: column; align-items: center; }
     .log { flex: none; width: 100%; max-width: 700px; max-height: 240px; position: static; }
+    .finalists { flex: none; width: 100%; max-width: 700px; position: static; order: -1; }
   }
   .log-entry .num {
     color: rgba(255,255,255,0.3); margin-right: 8px;
@@ -456,6 +503,11 @@
     </div>
 
     <div class="main-row">
+      <div class="finalists" id="finalists">
+        <div class="finalists-title">⚜ Финалисты ⚜</div>
+        <div id="finalists-list"></div>
+      </div>
+
       <div class="wheel-col">
         <div class="wheel-area">
           <svg class="wheel-svg" id="wheel" viewBox="0 0 100 100"></svg>
@@ -615,6 +667,7 @@ let currentRotation = 0;
 let isSpinning = false;
 let duration = 5;
 let eliminationMode = false;
+let finalists = null; // зафиксированный состав топ-5 в режиме выбывания
 let log = [];
 let soundOn = true;
 
@@ -650,6 +703,44 @@ function playClick() {
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
   osc.connect(gain); gain.connect(audioCtx.destination);
   osc.start(now); osc.stop(now + 0.08);
+}
+
+// Драматичный стинг появления панели финалистов: низкий удар + восходящий минор
+function playFinalistsSound() {
+  if (!soundOn) return;
+  ensureAudio();
+  if (!audioCtx) return;
+  const t0 = audioCtx.currentTime;
+
+  // Низкий "удар барабана"
+  const hit = audioCtx.createOscillator();
+  const hitGain = audioCtx.createGain();
+  hit.type = 'sine';
+  hit.frequency.setValueAtTime(85, t0);
+  hit.frequency.exponentialRampToValueAtTime(40, t0 + 0.5);
+  hitGain.gain.setValueAtTime(0.35, t0);
+  hitGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.6);
+  hit.connect(hitGain); hitGain.connect(audioCtx.destination);
+  hit.start(t0); hit.stop(t0 + 0.65);
+
+  // Восходящий тревожный мотив (ля-минор): A3 → C4 → E4 → A4
+  const notes = [
+    { f: 220.00, t: 0.15, dur: 0.22 },
+    { f: 261.63, t: 0.38, dur: 0.22 },
+    { f: 329.63, t: 0.61, dur: 0.22 },
+    { f: 440.00, t: 0.84, dur: 0.70 },
+  ];
+  notes.forEach(n => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(n.f, t0 + n.t);
+    gain.gain.setValueAtTime(0, t0 + n.t);
+    gain.gain.linearRampToValueAtTime(0.14, t0 + n.t + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + n.t + n.dur);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t0 + n.t); osc.stop(t0 + n.t + n.dur + 0.05);
+  });
 }
 
 // Развёрнутая мини-мелодия победителя (~3 секунды)
@@ -1183,6 +1274,46 @@ function updateStats() {
 }
 
 // ============================================================
+// Панель финалистов: фиксируется при ≤5 оставшихся в выбывании
+// ============================================================
+function renderFinalists() {
+  if (!finalists) return;
+  document.getElementById('finalists-list').innerHTML = finalists.map(f => `
+    <div class="finalist${f.out ? ' out' : ''}${f.champ ? ' champ' : ''}">
+      <span class="fin-nick">${f.champ ? '👑 ' : ''}${esc(f.nick)}</span>
+      <span class="fin-score">${f.score} 🎟</span>
+    </div>
+  `).join('');
+}
+
+function maybeShowFinalists() {
+  if (finalists || !eliminationMode) return;
+  if (activeTickets.length < 2 || activeTickets.length > 5) return;
+  finalists = activeTickets.map(t => ({ nick: t.nick, score: t.score, out: false, champ: false }));
+  renderFinalists();
+  document.getElementById('finalists').classList.add('active');
+  playFinalistsSound();
+}
+
+function markFinalistOut(nick) {
+  if (!finalists) return;
+  const f = finalists.find(x => x.nick === nick);
+  if (f) { f.out = true; renderFinalists(); }
+}
+
+function markFinalistChamp(nick) {
+  if (!finalists) return;
+  const f = finalists.find(x => x.nick === nick);
+  if (f) { f.champ = true; renderFinalists(); }
+}
+
+function hideFinalists() {
+  finalists = null;
+  document.getElementById('finalists').classList.remove('active');
+  document.getElementById('finalists-list').innerHTML = '';
+}
+
+// ============================================================
 // Кнопки
 // ============================================================
 document.querySelectorAll('.duration-btn').forEach(btn => {
@@ -1214,12 +1345,14 @@ document.getElementById('btn-elim').addEventListener('click', () => {
     document.getElementById('elimination-status').classList.add('active');
     document.getElementById('btn-elim').textContent = '⚔ Крутить (выбывание)';
     renderWheel(); // перерисовать с обратными весами: меньше билетов — больше сектор
+    maybeShowFinalists(); // если участников уже ≤5 — панель сразу
   }
   spin((eliminatedIdx) => {
     const eliminated = activeTickets[eliminatedIdx];
     if (activeTickets.length === 1) {
       const winner = activeTickets[0];
       addLogEntry('ПОБЕДИТЕЛЬ: ' + winner.nick + ' (' + winner.score + ' билетов)', true);
+      markFinalistChamp(winner.nick);
       showWinner(winner);
       eliminationMode = false;
       document.getElementById('elimination-status').classList.remove('active');
@@ -1228,12 +1361,15 @@ document.getElementById('btn-elim').addEventListener('click', () => {
     }
     addLogEntry('Выбыл: ' + eliminated.nick + ' (' + eliminated.score + ' билетов)', false);
     activeTickets.splice(eliminatedIdx, 1);
+    markFinalistOut(eliminated.nick);
     updateStats();
     renderWheel();
+    maybeShowFinalists();
     if (activeTickets.length === 1) {
       setTimeout(() => {
         const winner = activeTickets[0];
         addLogEntry('ПОБЕДИТЕЛЬ: ' + winner.nick + ' (' + winner.score + ' билетов)', true);
+        markFinalistChamp(winner.nick);
         showWinner(winner);
         eliminationMode = false;
         document.getElementById('elimination-status').classList.remove('active');
@@ -1252,6 +1388,7 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   eliminationMode = false;
   document.getElementById('elimination-status').classList.remove('active');
   document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+  hideFinalists();
   currentRotation = 0;
   const group = document.getElementById('wheel').querySelector('#wheel-group');
   if (group) {
@@ -1276,6 +1413,7 @@ document.getElementById('btn-reload').addEventListener('click', async () => {
     eliminationMode = false;
     document.getElementById('elimination-status').classList.remove('active');
     document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+    hideFinalists();
     currentRotation = 0;
     const group = document.getElementById('wheel').querySelector('#wheel-group');
     if (group) {
