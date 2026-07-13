@@ -145,29 +145,34 @@
   }
 
   .ctrl-btn {
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.2);
-    color: #fff; padding: 12px 22px;
-    font-family: inherit; font-size: 14px; letter-spacing: 1.5px;
+    background: rgba(4,47,46,0.6);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: rgba(255,255,255,0.85); padding: 12px 22px;
+    font-family: inherit; font-size: 14px; letter-spacing: 1px;
     text-transform: uppercase; border-radius: 8px; cursor: pointer;
     transition: all 0.15s ease;
   }
   .ctrl-btn:hover:not(:disabled) {
-    background: rgba(255,255,255,0.05);
+    background: rgba(4,47,46,0.85);
+    border-color: rgba(255,255,255,0.3);
     transform: translateY(-1px);
   }
   .ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .ctrl-btn.primary {
-    border-color: #fb7185; color: #fb7185; background: rgba(251,113,133,0.08);
+    background: rgba(4,47,46,0.75);
+    border-color: rgba(94,234,212,0.4);
+    color: #ccfbf1;
   }
   .ctrl-btn.primary:hover:not(:disabled) {
-    background: rgba(251,113,133,0.15);
-    box-shadow: 0 0 20px rgba(251,113,133,0.3);
+    background: rgba(13,148,136,0.35);
+    border-color: rgba(94,234,212,0.7);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
   }
   .ctrl-btn.danger {
-    border-color: #F09595; color: #F09595; background: rgba(216,90,48,0.05);
+    background: rgba(4,47,46,0.6);
+    border-color: rgba(240,149,149,0.35); color: #f2c4c4;
   }
-  .ctrl-btn.danger:hover:not(:disabled) { background: rgba(216,90,48,0.15); }
+  .ctrl-btn.danger:hover:not(:disabled) { background: rgba(216,90,48,0.2); }
 
   .duration-group {
     display: flex; align-items: center; gap: 8px;
@@ -187,7 +192,7 @@
     font-size: 13px; font-weight: 500;
     border-radius: 6px; cursor: pointer; transition: all 0.15s ease;
   }
-  .duration-btn.active { background: rgba(251,113,133,0.15); color: #fb7185; }
+  .duration-btn.active { background: rgba(94,234,212,0.18); color: #99f6e4; }
   .duration-btn:hover:not(.active) { color: #fff; }
 
   /* Звук */
@@ -213,25 +218,26 @@
   }
   .elimination-status.active { display: block; }
 
-  /* ===== Режим напряжения (драма) ===== */
-  .drama-status {
-    background: linear-gradient(135deg, rgba(251,113,133,0.15), rgba(168,85,247,0.15));
-    border: 1px solid rgba(251,113,133,0.4);
-    border-radius: 8px; padding: 10px 20px;
-    color: #fda4af; font-size: 13px; letter-spacing: 1px;
-    text-align: center; margin-bottom: 16px;
-    display: none;
+  /* ===== Layout: колесо слева, история справа ===== */
+  .main-row {
+    width: 100%;
+    display: flex; gap: 24px;
+    justify-content: center; align-items: flex-start;
   }
-  .drama-status.active { display: block; }
+  .wheel-col {
+    flex: 1 1 auto; min-width: 0; max-width: 700px;
+    display: flex; flex-direction: column; align-items: center;
+  }
 
-  /* ===== Лог ===== */
+  /* ===== Лог (история розыгрыша) ===== */
   .log {
-    width: 100%; max-width: 700px;
+    flex: 0 0 300px;
     background: rgba(0,0,0,0.3);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 8px; padding: 14px;
-    margin-top: 12px; max-height: 200px;
+    max-height: 640px;
     overflow-y: auto; display: none;
+    position: sticky; top: 20px;
   }
   .log.has-entries { display: block; }
   .log-title {
@@ -240,12 +246,30 @@
     margin-bottom: 8px;
   }
   .log-entry {
-    font-size: 13px; padding: 4px 0;
+    font-size: 13px; padding: 6px 8px;
     color: rgba(255,255,255,0.7);
     border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-radius: 6px;
   }
   .log-entry:last-child { border-bottom: none; }
   .log-entry.winner { color: #fb7185; font-weight: 600; font-size: 15px; }
+
+  /* Новая запись выпрыгивает большой и усаживается в список */
+  @keyframes logPop {
+    0%   { transform: scale(1.6); opacity: 0; background: rgba(251,113,133,0.35); }
+    35%  { transform: scale(1.45); opacity: 1; background: rgba(251,113,133,0.3); }
+    70%  { transform: scale(1.15); background: rgba(251,113,133,0.18); }
+    100% { transform: scale(1); background: transparent; }
+  }
+  .log-entry.fresh {
+    animation: logPop 1.1s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+    transform-origin: center left;
+  }
+
+  @media (max-width: 900px) {
+    .main-row { flex-direction: column; align-items: center; }
+    .log { flex: none; width: 100%; max-width: 700px; max-height: 240px; position: static; }
+  }
   .log-entry .num {
     color: rgba(255,255,255,0.3); margin-right: 8px;
     font-variant-numeric: tabular-nums;
@@ -431,41 +455,41 @@
       Режим выбывания. Осталось участников: <span id="elim-remaining">0</span>
     </div>
 
-    <div id="drama-status" class="drama-status">
-      🎭 Режим напряжения активен. Победитель уже определён, выбывают остальные.
-    </div>
+    <div class="main-row">
+      <div class="wheel-col">
+        <div class="wheel-area">
+          <svg class="wheel-svg" id="wheel" viewBox="0 0 100 100"></svg>
+          <div class="wheel-pointer" id="wheel-pointer">
+            <svg viewBox="0 0 52 60">
+              <polygon points="26,58 4,8 48,8" fill="#fb7185" stroke="#042f2e" stroke-width="2" stroke-linejoin="round"/>
+              <circle cx="26" cy="10" r="5" fill="#fb7185" stroke="#042f2e" stroke-width="2"/>
+            </svg>
+          </div>
+        </div>
 
-    <div class="wheel-area">
-      <svg class="wheel-svg" id="wheel" viewBox="0 0 100 100"></svg>
-      <div class="wheel-pointer" id="wheel-pointer">
-        <svg viewBox="0 0 52 60">
-          <polygon points="26,58 4,8 48,8" fill="#fb7185" stroke="#042f2e" stroke-width="2" stroke-linejoin="round"/>
-          <circle cx="26" cy="10" r="5" fill="#fb7185" stroke="#042f2e" stroke-width="2"/>
-        </svg>
+        <div class="controls">
+          <div class="duration-group">
+            <span class="duration-label">⏱ Длительность</span>
+            <button class="duration-btn" data-dur="3">3с</button>
+            <button class="duration-btn active" data-dur="5">5с</button>
+            <button class="duration-btn" data-dur="10">10с</button>
+            <button class="duration-btn" data-dur="60">60с</button>
+          </div>
+          <button class="sound-toggle" id="sound-toggle">🔊 Звук вкл.</button>
+        </div>
+
+        <div class="controls">
+          <button class="ctrl-btn primary" id="btn-single">🎯 Один победитель</button>
+          <button class="ctrl-btn primary" id="btn-elim">⚔ Режим выбывания</button>
+          <button class="ctrl-btn danger" id="btn-reset">↺ Сброс</button>
+          <button class="ctrl-btn" id="btn-reload">🔄 Перезагрузить билеты</button>
+        </div>
       </div>
-    </div>
 
-    <div class="controls">
-      <div class="duration-group">
-        <span class="duration-label">⏱ Длительность</span>
-        <button class="duration-btn" data-dur="3">3с</button>
-        <button class="duration-btn active" data-dur="5">5с</button>
-        <button class="duration-btn" data-dur="10">10с</button>
+      <div class="log" id="log">
+        <div class="log-title">История розыгрыша</div>
+        <div id="log-entries"></div>
       </div>
-      <button class="sound-toggle" id="sound-toggle">🔊 Звук вкл.</button>
-    </div>
-
-    <div class="controls">
-      <button class="ctrl-btn primary" id="btn-single">🎯 Один победитель</button>
-      <button class="ctrl-btn primary" id="btn-drama">🎭 Финал в напряжении</button>
-      <button class="ctrl-btn primary" id="btn-elim">⚔ Режим выбывания</button>
-      <button class="ctrl-btn danger" id="btn-reset">↺ Сброс</button>
-      <button class="ctrl-btn" id="btn-reload">🔄 Перезагрузить билеты</button>
-    </div>
-
-    <div class="log" id="log">
-      <div class="log-title">История розыгрыша</div>
-      <div id="log-entries"></div>
     </div>
   </div>
 
@@ -591,8 +615,6 @@ let currentRotation = 0;
 let isSpinning = false;
 let duration = 5;
 let eliminationMode = false;
-let dramaMode = false;
-let dramaFinalist = null; // ник финалиста выбранного заранее в режиме "напряжение"
 let log = [];
 let soundOn = true;
 
@@ -908,35 +930,6 @@ function pickWinnerIndex() {
   return activeTickets.length - 1;
 }
 
-// Взвешенный выбор того, кто выбывает, исключая защищённый ник (финалиста)
-// Возвращает индекс в activeTickets
-function pickEliminationIndex(protectedNick) {
-  const candidates = [];
-  for (let i = 0; i < activeTickets.length; i++) {
-    if (activeTickets[i].nick !== protectedNick) {
-      candidates.push({ idx: i, score: activeTickets[i].score });
-    }
-  }
-  if (candidates.length === 0) return -1;
-
-  const total = candidates.reduce((s, c) => s + c.score, 0);
-  if (total === 0) {
-    // У всех 0 билетов — равновероятный выбор
-    const buf = new Uint32Array(1);
-    crypto.getRandomValues(buf);
-    return candidates[buf[0] % candidates.length].idx;
-  }
-  const buf = new Uint32Array(1);
-  crypto.getRandomValues(buf);
-  const rand = (buf[0] / 0x100000000) * total;
-  let acc = 0;
-  for (const c of candidates) {
-    acc += c.score;
-    if (rand < acc) return c.idx;
-  }
-  return candidates[candidates.length - 1].idx;
-}
-
 // Стрелка указывает ВНИЗ из верхней позиции = угол 0° (12 часов в нашей системе координат)
 const POINTER_ANGLE = 0;
 
@@ -1081,7 +1074,6 @@ function triggerTick() {
 
 function setControlsDisabled(disabled) {
   document.getElementById('btn-single').disabled = disabled;
-  document.getElementById('btn-drama').disabled = disabled;
   document.getElementById('btn-elim').disabled = disabled;
   document.getElementById('btn-reset').disabled = disabled;
   document.getElementById('btn-reload').disabled = disabled;
@@ -1172,13 +1164,14 @@ function addLogEntry(text, isWinner) {
   log.push({ text, isWinner });
   const logEl = document.getElementById('log');
   const entries = document.getElementById('log-entries');
+  // Новые записи сверху; свежая (первая) выпрыгивает крупной и усаживается
   entries.innerHTML = log.map((e, i) => `
-    <div class="log-entry${e.isWinner ? ' winner' : ''}">
+    <div class="log-entry${e.isWinner ? ' winner' : ''}${i === log.length - 1 ? ' fresh' : ''}">
       <span class="num">${e.isWinner ? '🏆' : '#' + (i + 1)}</span>${esc(e.text)}
     </div>
-  `).join('');
+  `).reverse().join('');
   logEl.classList.add('has-entries');
-  entries.scrollTop = entries.scrollHeight;
+  logEl.scrollTop = 0;
 }
 
 function updateStats() {
@@ -1208,13 +1201,6 @@ document.getElementById('btn-single').addEventListener('click', () => {
     document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
     renderWheel(); // вернуть обычные пропорции секторов перед прокруткой
   }
-  if (dramaMode) {
-    if (!confirm('Активен режим напряжения. Прервать его и крутить одиночный розыгрыш?')) return;
-    dramaMode = false;
-    dramaFinalist = null;
-    document.getElementById('drama-status').classList.remove('active');
-    document.getElementById('btn-drama').textContent = '🎭 Финал в напряжении';
-  }
   spin((winnerIdx) => {
     const winner = activeTickets[winnerIdx];
     addLogEntry(winner.nick + ' (' + winner.score + ' билетов)', true);
@@ -1223,13 +1209,6 @@ document.getElementById('btn-single').addEventListener('click', () => {
 });
 
 document.getElementById('btn-elim').addEventListener('click', () => {
-  if (dramaMode) {
-    if (!confirm('Активен режим напряжения. Прервать его и переключиться на режим выбывания?')) return;
-    dramaMode = false;
-    dramaFinalist = null;
-    document.getElementById('drama-status').classList.remove('active');
-    document.getElementById('btn-drama').textContent = '🎭 Финал в напряжении';
-  }
   if (!eliminationMode) {
     eliminationMode = true;
     document.getElementById('elimination-status').classList.add('active');
@@ -1264,77 +1243,6 @@ document.getElementById('btn-elim').addEventListener('click', () => {
   });
 });
 
-document.getElementById('btn-drama').addEventListener('click', () => {
-  // Первое нажатие — определяем финалиста (взвешенно по билетам) и активируем режим
-  if (!dramaMode) {
-    if (activeTickets.length < 2) {
-      alert('Для финала в напряжении нужно минимум 2 участника.');
-      return;
-    }
-    // Если был активен обычный режим выбывания — сбрасываем
-    if (eliminationMode) {
-      eliminationMode = false;
-      document.getElementById('elimination-status').classList.remove('active');
-      document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
-      renderWheel(); // вернуть обычные пропорции секторов
-    }
-    const finalistIdx = pickWinnerIndex();
-    dramaFinalist = activeTickets[finalistIdx].nick;
-    dramaMode = true;
-    document.getElementById('drama-status').classList.add('active');
-    document.getElementById('btn-drama').textContent = '🎭 Крутить (напряжение)';
-    addLogEntry('🎭 Финал в напряжении начался', false);
-  }
-
-  // Если остался только финалист — он победитель
-  if (activeTickets.length === 1) {
-    const winner = activeTickets[0];
-    addLogEntry('🏆 ПОБЕДИТЕЛЬ: ' + winner.nick + ' (' + winner.score + ' билетов)', true);
-    showWinner(winner);
-    dramaMode = false;
-    dramaFinalist = null;
-    document.getElementById('drama-status').classList.remove('active');
-    document.getElementById('btn-drama').textContent = '🎭 Финал в напряжении';
-    return;
-  }
-
-  // Выбираем кого выбить (любой кроме финалиста, взвешенно по билетам)
-  const eliminationIdx = pickEliminationIndex(dramaFinalist);
-  if (eliminationIdx < 0) {
-    // Все остальные кроме финалиста уже выбыли — он победил
-    const winner = activeTickets.find(t => t.nick === dramaFinalist);
-    addLogEntry('🏆 ПОБЕДИТЕЛЬ: ' + winner.nick + ' (' + winner.score + ' билетов)', true);
-    showWinner(winner);
-    dramaMode = false;
-    dramaFinalist = null;
-    document.getElementById('drama-status').classList.remove('active');
-    document.getElementById('btn-drama').textContent = '🎭 Финал в напряжении';
-    return;
-  }
-
-  // Крутим колесо так, чтобы стрелка остановилась на том, кто выбывает
-  spin((arrivedIdx) => {
-    const eliminated = activeTickets[arrivedIdx];
-    activeTickets.splice(arrivedIdx, 1);
-    addLogEntry('💔 Выбыл: ' + eliminated.nick + ' (' + eliminated.score + ' билетов)', false);
-    updateStats();
-    renderWheel();
-
-    // Если остался только финалист — победа после короткой паузы
-    if (activeTickets.length === 1) {
-      setTimeout(() => {
-        const winner = activeTickets[0];
-        addLogEntry('🏆 ПОБЕДИТЕЛЬ: ' + winner.nick + ' (' + winner.score + ' билетов)', true);
-        showWinner(winner);
-        dramaMode = false;
-        dramaFinalist = null;
-        document.getElementById('drama-status').classList.remove('active');
-        document.getElementById('btn-drama').textContent = '🎭 Финал в напряжении';
-      }, 700);
-    }
-  }, eliminationIdx);
-});
-
 document.getElementById('btn-reset').addEventListener('click', () => {
   if (!confirm('Сбросить розыгрыш? Все выбывшие вернутся, лог очистится.')) return;
   activeTickets = [...allTickets];
@@ -1344,10 +1252,6 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   eliminationMode = false;
   document.getElementById('elimination-status').classList.remove('active');
   document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
-  dramaMode = false;
-  dramaFinalist = null;
-  document.getElementById('drama-status').classList.remove('active');
-  document.getElementById('btn-drama').textContent = '🎭 Финал в напряжении';
   currentRotation = 0;
   const group = document.getElementById('wheel').querySelector('#wheel-group');
   if (group) {
@@ -1372,10 +1276,6 @@ document.getElementById('btn-reload').addEventListener('click', async () => {
     eliminationMode = false;
     document.getElementById('elimination-status').classList.remove('active');
     document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
-    dramaMode = false;
-    dramaFinalist = null;
-    document.getElementById('drama-status').classList.remove('active');
-    document.getElementById('btn-drama').textContent = '🎭 Финал в напряжении';
     currentRotation = 0;
     const group = document.getElementById('wheel').querySelector('#wheel-group');
     if (group) {
