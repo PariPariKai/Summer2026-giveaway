@@ -29,10 +29,10 @@
   body {
     background:
       linear-gradient(180deg,
-        #082f49 0%,
-        #0c4a6e 30%,
-        #0891b2 65%,
-        #67e8f9 90%,
+        #042f2e 0%,
+        #134e4a 30%,
+        #0d9488 65%,
+        #5eead4 90%,
         #fef3c7 100%
       );
     background-attachment: fixed;
@@ -53,8 +53,8 @@
     position: fixed;
     inset: 0;
     background-image:
-      radial-gradient(ellipse 600px 200px at 20% 30%, rgba(34, 211, 238, 0.10), transparent 60%),
-      radial-gradient(ellipse 800px 250px at 80% 60%, rgba(251, 146, 60, 0.08), transparent 60%);
+      radial-gradient(ellipse 600px 200px at 20% 30%, rgba(45, 212, 191, 0.10), transparent 60%),
+      radial-gradient(ellipse 800px 250px at 80% 60%, rgba(251, 113, 133, 0.08), transparent 60%);
     pointer-events: none;
     z-index: 0;
   }
@@ -73,17 +73,17 @@
     color: #fff; font-family: inherit; font-size: 18px;
     width: 260px; outline: none; text-align: center; letter-spacing: 4px;
   }
-  .gate-input:focus { border-color: rgba(251,146,60,0.5); }
+  .gate-input:focus { border-color: rgba(251,113,133,0.5); }
   .gate-error { color: #F09595; font-size: 13px; margin-top: 12px; min-height: 18px; }
   .gate-button {
     margin-top: 14px; background: transparent;
-    border: 1px solid rgba(251,146,60,0.4);
-    color: #fb923c; padding: 10px 24px;
+    border: 1px solid rgba(251,113,133,0.4);
+    color: #fb7185; padding: 10px 24px;
     font-family: inherit; font-size: 13px; letter-spacing: 2px;
     text-transform: uppercase; border-radius: 8px; cursor: pointer;
     transition: all 0.15s ease;
   }
-  .gate-button:hover { background: rgba(251,146,60,0.1); }
+  .gate-button:hover { background: rgba(251,113,133,0.1); }
 
   /* ===== Основной интерфейс ===== */
   .app {
@@ -97,7 +97,7 @@
     justify-content: space-between; align-items: center;
     margin-bottom: 20px; padding: 0 4px;
   }
-  .app-title { font-size: 18px; letter-spacing: 3px; color: #fb923c; text-transform: uppercase; }
+  .app-title { font-size: 18px; letter-spacing: 3px; color: #fb7185; text-transform: uppercase; }
   .app-stats { font-size: 12px; color: rgba(255,255,255,0.5); letter-spacing: 1px; }
 
   /* ===== Колесо ===== */
@@ -158,11 +158,11 @@
   }
   .ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .ctrl-btn.primary {
-    border-color: #fb923c; color: #fb923c; background: rgba(251,146,60,0.08);
+    border-color: #fb7185; color: #fb7185; background: rgba(251,113,133,0.08);
   }
   .ctrl-btn.primary:hover:not(:disabled) {
-    background: rgba(251,146,60,0.15);
-    box-shadow: 0 0 20px rgba(251,146,60,0.3);
+    background: rgba(251,113,133,0.15);
+    box-shadow: 0 0 20px rgba(251,113,133,0.3);
   }
   .ctrl-btn.danger {
     border-color: #F09595; color: #F09595; background: rgba(216,90,48,0.05);
@@ -187,7 +187,7 @@
     font-size: 13px; font-weight: 500;
     border-radius: 6px; cursor: pointer; transition: all 0.15s ease;
   }
-  .duration-btn.active { background: rgba(251,146,60,0.15); color: #fb923c; }
+  .duration-btn.active { background: rgba(251,113,133,0.15); color: #fb7185; }
   .duration-btn:hover:not(.active) { color: #fff; }
 
   /* Звук */
@@ -204,8 +204,8 @@
 
   /* ===== Режим выбывания индикатор ===== */
   .elimination-status {
-    background: rgba(34,211,238,0.1);
-    border: 1px solid rgba(34,211,238,0.3);
+    background: rgba(45,212,191,0.1);
+    border: 1px solid rgba(45,212,191,0.3);
     border-radius: 8px; padding: 10px 20px;
     color: #AFA9EC; font-size: 13px; letter-spacing: 1px;
     text-align: center; margin-bottom: 16px;
@@ -215,10 +215,10 @@
 
   /* ===== Режим напряжения (драма) ===== */
   .drama-status {
-    background: linear-gradient(135deg, rgba(251,146,60,0.15), rgba(168,85,247,0.15));
-    border: 1px solid rgba(251,146,60,0.4);
+    background: linear-gradient(135deg, rgba(251,113,133,0.15), rgba(168,85,247,0.15));
+    border: 1px solid rgba(251,113,133,0.4);
     border-radius: 8px; padding: 10px 20px;
-    color: #fdba74; font-size: 13px; letter-spacing: 1px;
+    color: #fda4af; font-size: 13px; letter-spacing: 1px;
     text-align: center; margin-bottom: 16px;
     display: none;
   }
@@ -245,7 +245,7 @@
     border-bottom: 1px solid rgba(255,255,255,0.05);
   }
   .log-entry:last-child { border-bottom: none; }
-  .log-entry.winner { color: #fb923c; font-weight: 600; font-size: 15px; }
+  .log-entry.winner { color: #fb7185; font-weight: 600; font-size: 15px; }
   .log-entry .num {
     color: rgba(255,255,255,0.3); margin-right: 8px;
     font-variant-numeric: tabular-nums;
@@ -267,15 +267,15 @@
     text-align: center;
     padding: 70px 100px;
     border-radius: 24px;
-    background: linear-gradient(180deg, #2a1d0a 0%, #0c4a6e 100%);
-    border: 4px solid #fb923c;
+    background: linear-gradient(180deg, #2a1d0a 0%, #134e4a 100%);
+    border: 4px solid #fb7185;
     position: relative;
     overflow: hidden;
     animation: winnerCardIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     box-shadow:
-      0 0 80px rgba(251,146,60,0.4),
-      0 0 160px rgba(251,146,60,0.2),
-      inset 0 0 60px rgba(251,146,60,0.1);
+      0 0 80px rgba(251,113,133,0.4),
+      0 0 160px rgba(251,113,133,0.2),
+      inset 0 0 60px rgba(251,113,133,0.1);
   }
   @keyframes winnerCardIn {
     from { transform: scale(0.5) rotateY(180deg); opacity: 0; }
@@ -287,17 +287,17 @@
     content: '';
     position: absolute; inset: -4px;
     border-radius: 24px;
-    border: 4px solid #fb923c;
+    border: 4px solid #fb7185;
     animation: winnerGlow 1.8s ease-in-out infinite;
     pointer-events: none;
   }
   @keyframes winnerGlow {
     0%, 100% {
-      box-shadow: 0 0 30px rgba(251,146,60,0.6), 0 0 80px rgba(251,146,60,0.3);
+      box-shadow: 0 0 30px rgba(251,113,133,0.6), 0 0 80px rgba(251,113,133,0.3);
       opacity: 0.7;
     }
     50% {
-      box-shadow: 0 0 60px rgba(251,146,60,1), 0 0 140px rgba(251,146,60,0.5);
+      box-shadow: 0 0 60px rgba(251,113,133,1), 0 0 140px rgba(251,113,133,0.5);
       opacity: 1;
     }
   }
@@ -308,7 +308,7 @@
     position: absolute;
     top: -50%; left: -50%;
     width: 200%; height: 200%;
-    background: linear-gradient(45deg, transparent 30%, rgba(251,146,60,0.18) 50%, transparent 70%);
+    background: linear-gradient(45deg, transparent 30%, rgba(251,113,133,0.18) 50%, transparent 70%);
     animation: shimmer 3s infinite linear;
     pointer-events: none;
   }
@@ -319,31 +319,31 @@
 
   .winner-label {
     font-size: 20px; letter-spacing: 6px;
-    color: #fb923c; text-transform: uppercase;
+    color: #fb7185; text-transform: uppercase;
     margin-bottom: 30px;
     position: relative;
-    text-shadow: 0 0 20px rgba(251,146,60,0.6);
+    text-shadow: 0 0 20px rgba(251,113,133,0.6);
   }
 
   .winner-avatar {
     width: 200px; height: 200px;
     border-radius: 50%;
-    border: 6px solid #fb923c;
+    border: 6px solid #fb7185;
     background-size: cover; background-position: center;
     background-color: #412402;
     margin: 0 auto 28px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 64px; font-weight: 500; color: #fb923c;
+    font-size: 64px; font-weight: 500; color: #fb7185;
     position: relative;
     box-shadow:
-      0 0 40px rgba(251,146,60,0.5),
+      0 0 40px rgba(251,113,133,0.5),
       inset 0 0 20px rgba(0,0,0,0.4);
   }
 
   .winner-nick {
     font-size: 64px; color: #fff; font-weight: 600;
     margin-bottom: 20px;
-    text-shadow: 0 0 25px rgba(251,146,60,0.7);
+    text-shadow: 0 0 25px rgba(251,113,133,0.7);
     position: relative;
     letter-spacing: 1px;
     word-break: break-word;
@@ -439,8 +439,8 @@
       <svg class="wheel-svg" id="wheel" viewBox="0 0 100 100"></svg>
       <div class="wheel-pointer" id="wheel-pointer">
         <svg viewBox="0 0 52 60">
-          <polygon points="26,58 4,8 48,8" fill="#fb923c" stroke="#082f49" stroke-width="2" stroke-linejoin="round"/>
-          <circle cx="26" cy="10" r="5" fill="#fb923c" stroke="#082f49" stroke-width="2"/>
+          <polygon points="26,58 4,8 48,8" fill="#fb7185" stroke="#042f2e" stroke-width="2" stroke-linejoin="round"/>
+          <circle cx="26" cy="10" r="5" fill="#fb7185" stroke="#042f2e" stroke-width="2"/>
         </svg>
       </div>
     </div>
@@ -597,7 +597,7 @@ let log = [];
 let soundOn = true;
 
 const SECTOR_COLORS = [
-  '#22d3ee', '#fb923c', '#D85A30', '#97C459',
+  '#2dd4bf', '#fb7185', '#D85A30', '#97C459',
   '#5BA9E5', '#E599C2', '#B58FF5', '#F0B370',
   '#86D7C9', '#E58686', '#9CB870', '#5B7FE5'
 ];
@@ -852,7 +852,7 @@ function renderWheel() {
     if (displayNick.length > maxChars) displayNick = displayNick.substring(0, maxChars - 1) + '…';
     const showText = seg.angle >= 2;
 
-    groupContent += `<path d="${path}" fill="${color}" stroke="#082f49" stroke-width="0.2"/>`;
+    groupContent += `<path d="${path}" fill="${color}" stroke="#042f2e" stroke-width="0.2"/>`;
     if (showText) {
       groupContent += `<text x="${tx}" y="${ty}" fill="#fff" font-size="${fontSize}"
                        text-anchor="middle" dominant-baseline="middle"
@@ -865,7 +865,7 @@ function renderWheel() {
     <g id="wheel-group" style="transform-origin: 50% 50%; transform: rotate(${currentRotation}deg); transition: none;">
       ${groupContent}
     </g>
-    <circle cx="50" cy="50" r="6" fill="#082f49" stroke="#fb923c" stroke-width="0.5"/>
+    <circle cx="50" cy="50" r="6" fill="#042f2e" stroke="#fb7185" stroke-width="0.5"/>
   `;
 }
 
@@ -1113,7 +1113,7 @@ function launchConfetti() {
   container.innerHTML = '';
 
   // Палитра золотых оттенков
-  const goldColors = ['#fb923c', '#FFD700', '#FFE194', '#F0B370', '#FFCC33', '#FFFFFF'];
+  const goldColors = ['#fb7185', '#FFD700', '#FFE194', '#F0B370', '#FFCC33', '#FFFFFF'];
   const shapes = ['rect', 'circle', 'star'];
   const numPieces = 120;
 

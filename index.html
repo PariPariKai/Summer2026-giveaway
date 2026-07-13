@@ -12,11 +12,11 @@
 
 <style>
   :root {
-    --ocean-deep:    #0c4a6e;
-    --ocean-mid:     #0891b2;
-    --ocean-light:   #22d3ee;
-    --coral:         #fb923c;
-    --coral-light:   #fdba74;
+    --ocean-deep:    #134e4a;
+    --ocean-mid:     #0d9488;
+    --ocean-light:   #2dd4bf;
+    --coral:         #fb7185;
+    --coral-light:   #fda4af;
     --sand:          #fef3c7;
     --sand-warm:     #fde68a;
 
@@ -40,8 +40,8 @@
     --text-dim:      rgba(240, 249, 255, 0.6);
     --text-faint:    rgba(240, 249, 255, 0.35);
 
-    --card-bg:       rgba(8, 47, 73, 0.5);
-    --card-border:   rgba(34, 211, 238, 0.18);
+    --card-bg:       rgba(4, 47, 46, 0.55);
+    --card-border:   rgba(45, 212, 191, 0.22);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -49,10 +49,10 @@
   body {
     background:
       linear-gradient(180deg,
-        #082f49 0%,
-        #0c4a6e 30%,
-        #0891b2 65%,
-        #67e8f9 90%,
+        #042f2e 0%,
+        #115e59 30%,
+        #0d9488 65%,
+        #5eead4 90%,
         #fef3c7 100%
       );
     background-attachment: fixed;
@@ -68,8 +68,8 @@
     position: fixed;
     inset: 0;
     background-image:
-      radial-gradient(ellipse 600px 200px at 20% 30%, rgba(34, 211, 238, 0.12), transparent 60%),
-      radial-gradient(ellipse 800px 250px at 80% 60%, rgba(251, 146, 60, 0.08), transparent 60%);
+      radial-gradient(ellipse 600px 200px at 20% 30%, rgba(45, 212, 191, 0.14), transparent 60%),
+      radial-gradient(ellipse 800px 250px at 80% 60%, rgba(251, 113, 133, 0.10), transparent 60%);
     pointer-events: none;
     z-index: 0;
   }
@@ -84,7 +84,7 @@
     margin-bottom: 32px;
     padding: 56px 24px 36px;
     text-align: center;
-    background: linear-gradient(135deg, #075985 0%, #0891b2 60%, #0c4a6e 100%);
+    background: linear-gradient(135deg, #0f766e 0%, #0d9488 60%, #134e4a 100%);
     border: 1px solid var(--card-border);
     box-shadow: 0 16px 50px rgba(0, 0, 0, 0.35);
     min-height: 300px;
@@ -95,9 +95,9 @@
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(180deg, rgba(8, 47, 73, 0.5) 0%, rgba(8, 47, 73, 0.75) 60%, rgba(8, 47, 73, 0.92) 100%);
+      linear-gradient(180deg, rgba(4, 47, 46, 0.5) 0%, rgba(4, 47, 46, 0.75) 60%, rgba(4, 47, 46, 0.92) 100%);
   }
-  .hero.no-bg .hero-bg { background-image: linear-gradient(180deg, rgba(251, 146, 60, 0.1) 0%, rgba(34, 211, 238, 0.06) 100%); }
+  .hero.no-bg .hero-bg { background-image: linear-gradient(180deg, rgba(251, 113, 133, 0.12) 0%, rgba(45, 212, 191, 0.08) 100%); }
   .hero.no-bg .hero-bg::after { content: none; }
   .hero-content { position: relative; z-index: 1; }
 
@@ -133,7 +133,7 @@
     align-items: center;
     gap: 8px;
     padding: 14px 20px;
-    background: rgba(8, 47, 73, 0.55);
+    background: rgba(4, 47, 46, 0.55);
     backdrop-filter: blur(10px);
     border: 1px solid;
     border-radius: 14px;
@@ -154,7 +154,7 @@
     border-radius: 50%;
     border: 2px solid;
     background-size: cover; background-position: center;
-    background-color: rgba(8, 47, 73, 0.6);
+    background-color: rgba(4, 47, 46, 0.6);
     display: flex; align-items: center; justify-content: center;
     font-size: 22px; font-weight: 500;
   }
@@ -276,7 +276,7 @@
   .prize-mini.is-current {
     opacity: 1;
     border-color: var(--mini-color, var(--coral));
-    box-shadow: 0 0 0 1px var(--mini-color, var(--coral)), 0 8px 24px var(--mini-glow, rgba(251, 146, 60, 0.2));
+    box-shadow: 0 0 0 1px var(--mini-color, var(--coral)), 0 8px 24px var(--mini-glow, rgba(251, 113, 133, 0.2));
   }
   .prize-mini.is-past { opacity: 0.35; }
   .prize-mini.tier-bronze { --mini-color: #cd7f32; --mini-glow: rgba(205, 127, 50, 0.25); }
@@ -302,11 +302,11 @@
     text-decoration: none;
     letter-spacing: 0.5px;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 8px 24px rgba(251, 146, 60, 0.3);
+    box-shadow: 0 8px 24px rgba(251, 113, 133, 0.3);
   }
   .cta-button:hover {
     transform: translateY(-3px);
-    box-shadow: 0 12px 32px rgba(251, 146, 60, 0.4);
+    box-shadow: 0 12px 32px rgba(251, 113, 133, 0.4);
   }
 
   /* ===== Секции ===== */
@@ -343,11 +343,11 @@
     backdrop-filter: blur(10px);
   }
   .tier-card.silver {
-    background: linear-gradient(135deg, rgba(212, 212, 216, 0.08), rgba(8, 47, 73, 0.5));
+    background: linear-gradient(135deg, rgba(212, 212, 216, 0.08), rgba(4, 47, 46, 0.5));
     border: 1px solid rgba(212, 212, 216, 0.35);
   }
   .tier-card.gold {
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.12), rgba(8, 47, 73, 0.5));
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.12), rgba(4, 47, 46, 0.5));
     border: 1px solid rgba(255, 215, 0, 0.4);
     box-shadow: 0 0 24px rgba(255, 215, 0, 0.1);
   }
@@ -403,7 +403,7 @@
     gap: 16px;
     padding: 10px 18px;
     align-items: center;
-    border-bottom: 1px solid rgba(34, 211, 238, 0.08);
+    border-bottom: 1px solid rgba(45, 212, 191, 0.08);
   }
   .ways-row:last-child { border-bottom: none; }
   .ways-row-label { font-size: 14px; color: var(--text); }
@@ -526,7 +526,7 @@
     <!-- Серебро vs Золото -->
     <div class="section">
       <h2 class="section-title">🟡 Золото и ⚪ Серебро</h2>
-      <p class="section-subtitle">У нас два вида билетов. Оба идут в розыгрыш с одинаковым весом, но различаются по правилам начисления.</p>
+      <p class="section-subtitle">В нашем баре два вида билетов. Оба идут в розыгрыш с одинаковым весом, но различаются по правилам начисления.</p>
 
       <div class="tier-explainer">
         <div class="tier-card gold">
@@ -551,7 +551,7 @@
 
     <!-- Цвета стримеров -->
     <div class="section">
-      <h2 class="section-title">Цвета стримеров</h2>
+      <h2 class="section-title">🍹 Цвета стримеров</h2>
       <p class="section-subtitle">В таблице и на странице билетов цвета помогают видеть, у кого сколько билетов набрано.</p>
       <div class="legend-row" id="legend-row">
         <!-- Заполняется JS из Config -->
@@ -560,7 +560,7 @@
 
     <!-- Способы получения золотых -->
     <div class="section">
-      <h2 class="section-title">Как получить билеты</h2>
+      <h2 class="section-title">🌴 Как получить билеты</h2>
       <p class="section-subtitle">Все эти способы работают у каждого из троих стримеров. Считается отдельно для каждого канала.</p>
 
       <div class="ways-table-wrap gold">
@@ -640,8 +640,8 @@
 
     <!-- Правила -->
     <div class="section">
-      <h2 class="section-title">Правила розыгрыша</h2>
-      <p class="section-subtitle">Что нужно знать каждому участнику</p>
+      <h2 class="section-title">⛱ Правила розыгрыша</h2>
+      <p class="section-subtitle">Меню бара — что нужно знать каждому гостю</p>
 
       <div class="rules-grid">
         <div class="rule-card">

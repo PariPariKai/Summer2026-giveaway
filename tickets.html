@@ -17,11 +17,11 @@
 
 <style>
   :root {
-    --ocean-deep:    #0c4a6e;
-    --ocean-mid:     #0891b2;
-    --ocean-light:   #22d3ee;
-    --coral:         #fb923c;
-    --coral-light:   #fdba74;
+    --ocean-deep:    #134e4a;
+    --ocean-mid:     #0d9488;
+    --ocean-light:   #2dd4bf;
+    --coral:         #fb7185;
+    --coral-light:   #fda4af;
     --sand:          #fef3c7;
     --sand-warm:     #fde68a;
 
@@ -49,8 +49,8 @@
     --text-dim:      rgba(240, 249, 255, 0.6);
     --text-faint:    rgba(240, 249, 255, 0.35);
 
-    --card-bg:       rgba(8, 47, 73, 0.5);
-    --card-border:   rgba(34, 211, 238, 0.18);
+    --card-bg:       rgba(4, 47, 46, 0.5);
+    --card-border:   rgba(45, 212, 191, 0.18);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -58,10 +58,10 @@
   body {
     background:
       linear-gradient(180deg,
-        #082f49 0%,
-        #0c4a6e 35%,
-        #0891b2 70%,
-        #67e8f9 92%,
+        #042f2e 0%,
+        #134e4a 35%,
+        #0d9488 70%,
+        #5eead4 92%,
         #fef3c7 100%
       );
     background-attachment: fixed;
@@ -78,8 +78,8 @@
     position: fixed;
     inset: 0;
     background-image:
-      radial-gradient(ellipse 600px 200px at 20% 30%, rgba(34, 211, 238, 0.12), transparent 60%),
-      radial-gradient(ellipse 800px 250px at 80% 60%, rgba(251, 146, 60, 0.08), transparent 60%);
+      radial-gradient(ellipse 600px 200px at 20% 30%, rgba(45, 212, 191, 0.12), transparent 60%),
+      radial-gradient(ellipse 800px 250px at 80% 60%, rgba(251, 113, 133, 0.08), transparent 60%);
     pointer-events: none;
     z-index: 0;
   }
@@ -105,7 +105,7 @@
     margin-bottom: 28px;
     padding: 40px 24px 28px;
     text-align: center;
-    background: linear-gradient(135deg, #075985 0%, #0891b2 60%, #0c4a6e 100%);
+    background: linear-gradient(135deg, #0f766e 0%, #0d9488 60%, #134e4a 100%);
     border: 1px solid var(--card-border);
     box-shadow: 0 16px 50px rgba(0, 0, 0, 0.35);
     min-height: 220px;
@@ -122,9 +122,9 @@
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(180deg, rgba(8, 47, 73, 0.55) 0%, rgba(8, 47, 73, 0.78) 60%, rgba(8, 47, 73, 0.92) 100%);
+      linear-gradient(180deg, rgba(4, 47, 46, 0.55) 0%, rgba(4, 47, 46, 0.78) 60%, rgba(4, 47, 46, 0.92) 100%);
   }
-  .hero.no-bg .hero-bg { background-image: linear-gradient(180deg, rgba(251, 146, 60, 0.1) 0%, rgba(34, 211, 238, 0.06) 100%); }
+  .hero.no-bg .hero-bg { background-image: linear-gradient(180deg, rgba(251, 113, 133, 0.1) 0%, rgba(45, 212, 191, 0.06) 100%); }
   .hero.no-bg .hero-bg::after { content: none; }
   .hero-content { position: relative; z-index: 1; }
 
@@ -160,7 +160,7 @@
     align-items: center;
     gap: 6px;
     padding: 10px 16px;
-    background: rgba(8, 47, 73, 0.55);
+    background: rgba(4, 47, 46, 0.55);
     backdrop-filter: blur(10px);
     border: 1px solid;
     border-radius: 14px;
@@ -181,7 +181,7 @@
     border-radius: 50%;
     border: 2px solid;
     background-size: cover; background-position: center;
-    background-color: rgba(8, 47, 73, 0.6);
+    background-color: rgba(4, 47, 46, 0.6);
     display: flex; align-items: center; justify-content: center;
     font-size: 20px; font-weight: 500;
   }
@@ -197,7 +197,7 @@
     margin-bottom: 24px;
   }
   .search-input {
-    background: rgba(8, 47, 73, 0.5);
+    background: rgba(4, 47, 46, 0.5);
     backdrop-filter: blur(8px);
     border: 1px solid var(--card-border);
     border-radius: 10px;
@@ -212,8 +212,8 @@
   }
   .search-input:focus {
     border-color: var(--coral-light);
-    background: rgba(8, 47, 73, 0.7);
-    box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.15);
+    background: rgba(4, 47, 46, 0.7);
+    box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.15);
   }
   .search-input::placeholder { color: var(--text-faint); }
 
@@ -247,7 +247,7 @@
   }
   .podium-card.p-1 {
     border-color: var(--gold);
-    background: linear-gradient(180deg, rgba(255, 215, 0, 0.12) 0%, rgba(8, 47, 73, 0.65) 60%);
+    background: linear-gradient(180deg, rgba(255, 215, 0, 0.12) 0%, rgba(4, 47, 46, 0.65) 60%);
     box-shadow: 0 0 0 1px var(--gold-glow), 0 12px 40px rgba(255, 215, 0, 0.15);
   }
   .podium-card.p-1::before {
@@ -260,8 +260,8 @@
     pointer-events: none; z-index: 0;
   }
   @keyframes shimmer { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
-  .podium-card.p-2 { border-color: var(--silver); background: linear-gradient(180deg, rgba(212, 212, 216, 0.1) 0%, rgba(8, 47, 73, 0.65) 60%); }
-  .podium-card.p-3 { border-color: #cd7f32; background: linear-gradient(180deg, rgba(205, 127, 50, 0.12) 0%, rgba(8, 47, 73, 0.65) 60%); }
+  .podium-card.p-2 { border-color: var(--silver); background: linear-gradient(180deg, rgba(212, 212, 216, 0.1) 0%, rgba(4, 47, 46, 0.65) 60%); }
+  .podium-card.p-3 { border-color: #cd7f32; background: linear-gradient(180deg, rgba(205, 127, 50, 0.12) 0%, rgba(4, 47, 46, 0.65) 60%); }
 
   .podium-medal { font-size: 24px; margin-bottom: 4px; position: relative; z-index: 1; }
   .podium-avatar {
@@ -328,8 +328,8 @@
     font-size: 18px;
     font-weight: 600;
     color: var(--coral-light);
-    background: linear-gradient(135deg, rgba(251, 146, 60, 0.18), rgba(253, 224, 71, 0.12));
-    border: 1px solid rgba(251, 146, 60, 0.4);
+    background: linear-gradient(135deg, rgba(251, 113, 133, 0.18), rgba(253, 224, 71, 0.12));
+    border: 1px solid rgba(251, 113, 133, 0.4);
     border-radius: 12px;
     padding: 6px 14px;
     display: inline-flex;
@@ -368,11 +368,11 @@
   .ticket-card:hover {
     transform: translateY(-2px);
     border-color: var(--coral);
-    box-shadow: 0 8px 24px rgba(251, 146, 60, 0.15);
+    box-shadow: 0 8px 24px rgba(251, 113, 133, 0.15);
   }
   .ticket-card.expanded {
     border-color: var(--coral-light);
-    box-shadow: 0 8px 28px rgba(251, 146, 60, 0.22);
+    box-shadow: 0 8px 28px rgba(251, 113, 133, 0.22);
   }
 
   .ticket-rank {
@@ -390,7 +390,7 @@
     border-radius: 50%;
     border: 2px solid var(--card-border);
     background-size: cover; background-position: center;
-    background-color: rgba(8, 47, 73, 0.6);
+    background-color: rgba(4, 47, 46, 0.6);
     display: flex; align-items: center; justify-content: center;
     font-size: 16px; color: var(--text-dim);
     flex-shrink: 0;
