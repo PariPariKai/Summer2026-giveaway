@@ -255,6 +255,12 @@
   .log-entry:last-child { border-bottom: none; }
   .log-entry.winner { color: #fb7185; font-weight: 600; font-size: 15px; }
 
+  /* Подсветка количества билетов относительно среднего по всем участникам */
+  .score-tickets-grey  { color: rgba(255,255,255,0.42); font-size: 13px; font-weight: 400; }
+  .score-tickets-bronze { color: #cd7f32; font-size: 14px; font-weight: 500; }
+  .score-tickets-silver { color: #d1d5db; font-size: 16px; font-weight: 600; }
+  .score-tickets-gold  { color: #ffd700; font-size: 18px; font-weight: 700; text-shadow: 0 0 8px rgba(255,215,0,0.35); }
+
   /* Новая запись выпрыгивает большой и усаживается в список */
   @keyframes logPop {
     0%   { transform: scale(1.6); opacity: 0; background: rgba(251,113,133,0.35); }
@@ -291,26 +297,55 @@
     margin-bottom: 14px;
     text-shadow: 0 0 14px rgba(255,215,0,0.4);
   }
-  .finalist {
-    display: flex; justify-content: space-between; align-items: center;
+  .fin-slot {
+    display: flex; align-items: center; gap: 10px;
     padding: 9px 12px; border-radius: 6px; margin-bottom: 6px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid transparent;
-    font-size: 14px; transition: all 0.4s ease;
+    background: rgba(255,255,255,0.04);
+    border: 1px dashed rgba(255,255,255,0.12);
+    font-size: 14px; min-height: 40px;
+    transition: background 0.4s ease, border-color 0.4s ease, transform 0.4s ease;
   }
-  .finalist .fin-nick {
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  .fin-slot.rank-1 { border-color: rgba(255,215,0,0.25); background: rgba(255,215,0,0.06); }
+  .fin-slot.rank-2 { border-color: rgba(192,192,192,0.25); background: rgba(192,192,192,0.06); }
+  .fin-slot.rank-3 { border-color: rgba(205,127,50,0.25); background: rgba(205,127,50,0.06); }
+  .fin-rank {
+    flex: 0 0 22px; font-weight: 700; font-size: 15px;
+    color: rgba(255,255,255,0.35); text-align: center;
   }
-  .finalist .fin-score { color: rgba(255,255,255,0.5); font-size: 12px; margin-left: 8px; flex-shrink: 0; }
-  .finalist.out {
-    opacity: 0.4; text-decoration: line-through; filter: grayscale(1);
+  .fin-slot.rank-1 .fin-rank { color: #ffd700; }
+  .fin-slot.rank-2 .fin-rank { color: #c0c0c0; }
+  .fin-slot.rank-3 .fin-rank { color: #cd7f32; }
+  .fin-nick {
+    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    color: rgba(255,255,255,0.25); font-style: italic;
   }
-  .finalist.champ {
-    background: rgba(255,215,0,0.16);
-    border-color: rgba(255,215,0,0.55);
-    color: #ffd700; font-weight: 600;
-    box-shadow: 0 0 18px rgba(255,215,0,0.25);
+  .fin-slot.filled .fin-nick { color: #fff; font-style: normal; font-weight: 500; }
+  .fin-score { color: rgba(255,255,255,0.45); font-size: 12px; flex-shrink: 0; }
+  .fin-slot.filled .fin-score { color: rgba(255,255,255,0.65); }
+
+  @keyframes slotReveal {
+    0%   { transform: scale(1.35); opacity: 0; background: rgba(251,113,133,0.25); }
+    50%  { transform: scale(1.12); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
   }
+  .fin-slot.filled.reveal {
+    animation: slotReveal 0.9s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+    border-style: solid;
+  }
+  @keyframes goldGlow {
+    0%, 100% { box-shadow: 0 0 12px rgba(255,215,0,0.25); transform: scale(1); }
+    50%      { box-shadow: 0 0 28px rgba(255,215,0,0.55); transform: scale(1.04); }
+  }
+  .fin-slot.rank-1.filled.champ {
+    background: rgba(255,215,0,0.18);
+    border-color: rgba(255,215,0,0.65);
+    animation: goldGlow 2.2s ease-in-out infinite;
+  }
+  .fin-slot.rank-1.filled.champ .fin-nick { color: #ffd700; font-weight: 700; }
+  .fin-slot.rank-2.filled { background: rgba(192,192,192,0.12); border-color: rgba(192,192,192,0.45); border-style: solid; }
+  .fin-slot.rank-2.filled .fin-nick { color: #e8e8e8; }
+  .fin-slot.rank-3.filled { background: rgba(205,127,50,0.14); border-color: rgba(205,127,50,0.45); border-style: solid; }
+  .fin-slot.rank-3.filled .fin-nick { color: #e8b87a; }
 
   @media (max-width: 900px) {
     .main-row { flex-direction: column; align-items: center; }
@@ -667,7 +702,7 @@ let currentRotation = 0;
 let isSpinning = false;
 let duration = 5;
 let eliminationMode = false;
-let finalists = null; // зафиксированный состав топ-5 в режиме выбывания
+let finalists = null; // 5 слотов мест (1–5), заполняются по мере вылетов
 let log = [];
 let soundOn = true;
 
@@ -1251,14 +1286,38 @@ function stopConfetti() {
   container.innerHTML = '';
 }
 
-function addLogEntry(text, isWinner) {
-  log.push({ text, isWinner });
+function scoreTierClass(score) {
+  const pool = allTickets.length ? allTickets : activeTickets;
+  if (!pool.length) return 'score-tickets-grey';
+  const avg = pool.reduce((s, t) => s + t.score, 0) / pool.length;
+  if (avg <= 0) return 'score-tickets-grey';
+  const pct = (score / avg) * 100;
+  if (pct < 50) return 'score-tickets-grey';
+  if (pct <= 90) return 'score-tickets-bronze';
+  if (pct <= 95) return 'score-tickets-silver';
+  return 'score-tickets-gold';
+}
+
+function formatLogHtml(prefix, nick, score) {
+  const tier = scoreTierClass(score);
+  return `${prefix}${esc(nick)} (<span class="${tier}">${score}</span> билет${pluralize(score)})`;
+}
+
+function addLogEntry(opts) {
+  // opts: { nick, score, isWinner } или { text, isWinner } для простых строк
+  let html;
+  if (opts.nick != null && opts.score != null) {
+    const prefix = opts.isWinner ? 'ПОБЕДИТЕЛЬ: ' : 'Выбыл: ';
+    html = formatLogHtml(prefix, opts.nick, opts.score);
+  } else {
+    html = esc(opts.text || '');
+  }
+  log.push({ html, isWinner: !!opts.isWinner });
   const logEl = document.getElementById('log');
   const entries = document.getElementById('log-entries');
-  // Новые записи сверху; свежая (первая) выпрыгивает крупной и усаживается
   entries.innerHTML = log.map((e, i) => `
     <div class="log-entry${e.isWinner ? ' winner' : ''}${i === log.length - 1 ? ' fresh' : ''}">
-      <span class="num">${e.isWinner ? '🏆' : '#' + (i + 1)}</span>${esc(e.text)}
+      <span class="num">${e.isWinner ? '🏆' : '#' + (i + 1)}</span>${e.html}
     </div>
   `).reverse().join('');
   logEl.classList.add('has-entries');
@@ -1274,37 +1333,57 @@ function updateStats() {
 }
 
 // ============================================================
-// Панель финалистов: фиксируется при ≤5 оставшихся в выбывании
+// Панель финалистов: 5 пустых слотов, заполняются по мере вылетов
 // ============================================================
+function initFinalistSlots() {
+  finalists = [1, 2, 3, 4, 5].map(rank => ({
+    rank, nick: null, score: null, reveal: false, champ: false,
+  }));
+}
+
 function renderFinalists() {
   if (!finalists) return;
-  document.getElementById('finalists-list').innerHTML = finalists.map(f => `
-    <div class="finalist${f.out ? ' out' : ''}${f.champ ? ' champ' : ''}">
-      <span class="fin-nick">${f.champ ? '👑 ' : ''}${esc(f.nick)}</span>
-      <span class="fin-score">${f.score} 🎟</span>
-    </div>
-  `).join('');
+  document.getElementById('finalists-list').innerHTML = finalists.map(s => {
+    const filled = s.nick != null;
+    const classes = [
+      'fin-slot', `rank-${s.rank}`,
+      filled ? 'filled' : 'empty',
+      s.reveal ? 'reveal' : '',
+      s.champ ? 'champ' : '',
+    ].filter(Boolean).join(' ');
+    return `
+      <div class="${classes}">
+        <span class="fin-rank">${s.rank}</span>
+        <span class="fin-nick">${filled ? esc(s.nick) : '—'}</span>
+        <span class="fin-score">${filled ? s.score + ' 🎟' : ''}</span>
+      </div>
+    `;
+  }).join('');
 }
 
 function maybeShowFinalists() {
   if (finalists || !eliminationMode) return;
   if (activeTickets.length < 2 || activeTickets.length > 5) return;
-  finalists = activeTickets.map(t => ({ nick: t.nick, score: t.score, out: false, champ: false }));
+  initFinalistSlots();
   renderFinalists();
   document.getElementById('finalists').classList.add('active');
   playFinalistsSound();
 }
 
-function markFinalistOut(nick) {
+// Заполнить слот места (5 = первый вылет из пятёрки, 1 = победитель)
+function fillFinalistSlot(rank, nick, score, isChamp) {
   if (!finalists) return;
-  const f = finalists.find(x => x.nick === nick);
-  if (f) { f.out = true; renderFinalists(); }
-}
-
-function markFinalistChamp(nick) {
-  if (!finalists) return;
-  const f = finalists.find(x => x.nick === nick);
-  if (f) { f.champ = true; renderFinalists(); }
+  const slot = finalists.find(s => s.rank === rank);
+  if (!slot || slot.nick != null) return;
+  slot.nick = nick;
+  slot.score = score;
+  slot.reveal = true;
+  slot.champ = !!isChamp;
+  renderFinalists();
+  setTimeout(() => {
+    slot.reveal = false;
+    if (finalists) renderFinalists();
+  }, 1000);
 }
 
 function hideFinalists() {
@@ -1334,7 +1413,7 @@ document.getElementById('btn-single').addEventListener('click', () => {
   }
   spin((winnerIdx) => {
     const winner = activeTickets[winnerIdx];
-    addLogEntry(winner.nick + ' (' + winner.score + ' билетов)', true);
+    addLogEntry({ nick: winner.nick, score: winner.score, isWinner: true });
     showWinner(winner);
   });
 });
@@ -1351,25 +1430,26 @@ document.getElementById('btn-elim').addEventListener('click', () => {
     const eliminated = activeTickets[eliminatedIdx];
     if (activeTickets.length === 1) {
       const winner = activeTickets[0];
-      addLogEntry('ПОБЕДИТЕЛЬ: ' + winner.nick + ' (' + winner.score + ' билетов)', true);
-      markFinalistChamp(winner.nick);
+      addLogEntry({ nick: winner.nick, score: winner.score, isWinner: true });
+      if (finalists) fillFinalistSlot(1, winner.nick, winner.score, true);
       showWinner(winner);
       eliminationMode = false;
       document.getElementById('elimination-status').classList.remove('active');
       document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
       return;
     }
-    addLogEntry('Выбыл: ' + eliminated.nick + ' (' + eliminated.score + ' билетов)', false);
+    const placeRank = activeTickets.length; // место вылетевшего (5→5-е, 4→4-е…)
+    addLogEntry({ nick: eliminated.nick, score: eliminated.score, isWinner: false });
     activeTickets.splice(eliminatedIdx, 1);
-    markFinalistOut(eliminated.nick);
+    if (finalists) fillFinalistSlot(placeRank, eliminated.nick, eliminated.score, false);
     updateStats();
     renderWheel();
-    maybeShowFinalists();
+    maybeShowFinalists(); // панель появляется, когда осталось ровно 5 (слоты пока пустые)
     if (activeTickets.length === 1) {
       setTimeout(() => {
         const winner = activeTickets[0];
-        addLogEntry('ПОБЕДИТЕЛЬ: ' + winner.nick + ' (' + winner.score + ' билетов)', true);
-        markFinalistChamp(winner.nick);
+        addLogEntry({ nick: winner.nick, score: winner.score, isWinner: true });
+        if (finalists) fillFinalistSlot(1, winner.nick, winner.score, true);
         showWinner(winner);
         eliminationMode = false;
         document.getElementById('elimination-status').classList.remove('active');
