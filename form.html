@@ -6,6 +6,15 @@
 <title>Выдача билетов</title>
 <meta name="robots" content="noindex,nofollow">
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js" defer></script>
+
+<!-- Библиотека Google Identity Services («Войти через Google») -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <!-- ============================================================
      ⚙ НАСТРОЙКА ⚙
      ============================================================ -->
@@ -13,8 +22,10 @@
   // URL Apps Script Web App (получишь после deploy)
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzZmmW60G6Wfro8LEf7RJaaRmyPOW4uRhLS0AF3LqmnagL_T9__sqgJW5MakOjiIDw/exec";
 
-  // SHA-256 хэш пароля. Должен совпадать с PASSWORD_HASH в apps_script.gs
-  const PASSWORD_HASH = "1b3367c6e6a88fb387686831e77be322251ff205e2abea42e45168b6ed1a8725";
+  // OAuth Client ID из Google Cloud Console (тип «Web application»).
+  // Должен побуквенно совпадать с GOOGLE_CLIENT_ID в Apps Script.
+  // Это НЕ секрет (безопасность держится на сервере), но менять — только вместе с сервером.
+  const GOOGLE_CLIENT_ID = "360286087971-29mrfnh1adr2iaakghnhn16brt3a172l.apps.googleusercontent.com";
 
   // CSV-ссылки на листы (для автодополнения и аватарок)
   const VIEWERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pub?gid=222000001&single=true&output=csv";
@@ -22,56 +33,17 @@
 </script>
 
 <style>
+  /* Палитра и фоновая сцена — в theme.css */
   :root {
-    --ocean-deep:    #134e4a;
-    --ocean-mid:     #0d9488;
-    --coral:         #fb7185;
-    --coral-light:   #fda4af;
-    --sand:          #fef3c7;
-
-    --ppk-color:     #06b6d4;
-    --ppk-bg:        rgba(6, 182, 212, 0.15);
-    --ppk-border:    rgba(6, 182, 212, 0.5);
-    --ppk-glow:      rgba(6, 182, 212, 0.35);
-
-    --ilyich-color:  #10b981;
-    --ilyich-bg:     rgba(16, 185, 129, 0.15);
-    --ilyich-border: rgba(16, 185, 129, 0.5);
-    --ilyich-glow:   rgba(16, 185, 129, 0.35);
-
-    --dipsy-color:   #a78bfa;
-    --dipsy-bg:      rgba(167, 139, 250, 0.15);
-    --dipsy-border:  rgba(167, 139, 250, 0.55);
-    --dipsy-glow:    rgba(167, 139, 250, 0.4);
-
-    --text:        #f0f9ff;
-    --text-dim:    rgba(240, 249, 255, 0.6);
-    --text-faint:  rgba(240, 249, 255, 0.35);
-    --card-bg:     rgba(4, 47, 46, 0.55);
-    --card-border: rgba(45, 212, 191, 0.18);
-
     /* Динамические — меняются при выборе стримера */
-    --active-color: var(--coral);
+    --active-color: var(--accent);
     --active-glow: transparent;
     --active-tint: transparent;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { padding: 20px; }
 
-  body {
-    background:
-      linear-gradient(180deg, #042f2e 0%, #134e4a 35%, #0d9488 70%, #5eead4 92%, #fef3c7 100%);
-    background-attachment: fixed;
-    min-height: 100vh;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    color: var(--text);
-    padding: 20px;
-    position: relative;
-    overflow-x: hidden;
-    transition: background 0.4s ease;
-  }
-
-  /* Цветовая "пелена" по всей странице в цвете стримера */
+  /* Цветовая "пелена" в цвете выбранного стримера — поверх сцены */
   body::before {
     content: '';
     position: fixed;
@@ -94,9 +66,9 @@
     transition: background 0.35s ease;
   }
 
-  body.streamer-ppk    { --active-tint: radial-gradient(ellipse at top, rgba(6, 182, 212, 0.10), transparent 50%); --active-glow: rgba(6, 182, 212, 0.18); --active-color: var(--ppk-color); }
-  body.streamer-ilyich { --active-tint: radial-gradient(ellipse at top, rgba(16, 185, 129, 0.10), transparent 50%); --active-glow: rgba(16, 185, 129, 0.18); --active-color: var(--ilyich-color); }
-  body.streamer-dipsy  { --active-tint: radial-gradient(ellipse at top, rgba(167, 139, 250, 0.10), transparent 50%); --active-glow: rgba(167, 139, 250, 0.22); --active-color: var(--dipsy-color); }
+  body.streamer-ppk    { --active-tint: radial-gradient(ellipse at top, rgba(42, 212, 239, 0.10), transparent 50%); --active-glow: rgba(42, 212, 239, 0.18); --active-color: var(--ppk-color); }
+  body.streamer-ilyich { --active-tint: radial-gradient(ellipse at top, rgba(61, 220, 154, 0.10), transparent 50%); --active-glow: rgba(61, 220, 154, 0.18); --active-color: var(--ilyich-color); }
+  body.streamer-dipsy  { --active-tint: radial-gradient(ellipse at top, rgba(201, 168, 255, 0.10), transparent 50%); --active-glow: rgba(201, 168, 255, 0.22); --active-color: var(--dipsy-color); }
 
   .wrap {
     max-width: 640px;
@@ -133,7 +105,7 @@
     gap: 12px;
   }
   .gate-input {
-    background: rgba(4, 47, 46, 0.6);
+    background: rgba(28, 14, 38, 0.7);
     backdrop-filter: blur(10px);
     border: 1px solid var(--card-border);
     border-radius: 12px;
@@ -150,12 +122,12 @@
   }
   .gate-input:focus {
     border-color: var(--coral-light);
-    background: rgba(4, 47, 46, 0.8);
-    box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.15);
+    background: rgba(28, 14, 38, 0.82);
+    box-shadow: 0 0 0 3px rgba(255, 166, 61, 0.16);
   }
   .gate-button {
     background: linear-gradient(135deg, var(--coral), var(--coral-light));
-    color: #1a1a2e;
+    color: #2a1206;
     font-weight: 600;
     font-size: 15px;
     padding: 12px 32px;
@@ -167,7 +139,7 @@
   }
   .gate-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(251, 113, 133, 0.35);
+    box-shadow: 0 8px 20px rgba(255, 138, 76, 0.4);
   }
   .gate-error {
     color: #fca5a5;
@@ -175,6 +147,14 @@
     min-height: 18px;
     margin-top: 6px;
   }
+  .gate-hint {
+    color: var(--text-dim);
+    font-size: 12.5px;
+    line-height: 1.5;
+    max-width: 300px;
+    margin-top: 4px;
+  }
+  #gsi-button { display: flex; justify-content: center; min-height: 44px; }
 
   /* ===== Основной экран ===== */
   .app { display: none; padding-top: 8px; }
@@ -209,6 +189,15 @@
     transition: all 0.15s ease;
   }
   .logout-btn:hover { color: var(--coral-light); border-color: var(--coral-light); }
+  .top-account { display: flex; align-items: center; gap: 10px; }
+  .account-email {
+    font-size: 11px;
+    color: var(--text-faint);
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
   /* ===== Блок выбора стримера ===== */
   .field { margin-bottom: 22px; }
@@ -227,7 +216,7 @@
     gap: 10px;
   }
   .streamer-card {
-    background: rgba(4, 47, 46, 0.55);
+    background: rgba(40, 20, 52, 0.58);
     backdrop-filter: blur(10px);
     border: 1px solid var(--card-border);
     border-radius: 14px;
@@ -243,9 +232,9 @@
     opacity: 1;
     transform: translateY(-2px);
   }
-  .streamer-card.active.s-ppk    { border-color: var(--ppk-border);    background: linear-gradient(135deg, var(--ppk-bg), rgba(4,47,46,0.55)); box-shadow: 0 0 0 2px var(--ppk-color), 0 10px 28px var(--ppk-glow); }
-  .streamer-card.active.s-ilyich { border-color: var(--ilyich-border); background: linear-gradient(135deg, var(--ilyich-bg), rgba(4,47,46,0.55)); box-shadow: 0 0 0 2px var(--ilyich-color), 0 10px 28px var(--ilyich-glow); }
-  .streamer-card.active.s-dipsy  { border-color: var(--dipsy-border);  background: linear-gradient(135deg, var(--dipsy-bg), rgba(4,47,46,0.55)); box-shadow: 0 0 0 2px var(--dipsy-color), 0 10px 28px var(--dipsy-glow); }
+  .streamer-card.active.s-ppk    { border-color: var(--ppk-border);    background: linear-gradient(135deg, var(--ppk-bg), rgba(40, 20, 52, 0.58)); box-shadow: 0 0 0 2px var(--ppk-color), 0 10px 28px var(--ppk-glow); }
+  .streamer-card.active.s-ilyich { border-color: var(--ilyich-border); background: linear-gradient(135deg, var(--ilyich-bg), rgba(40, 20, 52, 0.58)); box-shadow: 0 0 0 2px var(--ilyich-color), 0 10px 28px var(--ilyich-glow); }
+  .streamer-card.active.s-dipsy  { border-color: var(--dipsy-border);  background: linear-gradient(135deg, var(--dipsy-bg), rgba(40, 20, 52, 0.58)); box-shadow: 0 0 0 2px var(--dipsy-color), 0 10px 28px var(--dipsy-glow); }
   .streamer-card:hover:not(.active) { opacity: 0.85; }
 
   .streamer-avatar {
@@ -253,7 +242,7 @@
     border-radius: 50%;
     border: 2px solid;
     background-size: cover; background-position: center;
-    background-color: rgba(4, 47, 46, 0.6);
+    background-color: rgba(28, 14, 38, 0.7);
     margin: 0 auto 8px;
     display: flex; align-items: center; justify-content: center;
     font-size: 20px; font-weight: 500;
@@ -279,7 +268,7 @@
   .input,
   .select {
     width: 100%;
-    background: rgba(4, 47, 46, 0.55);
+    background: rgba(40, 20, 52, 0.58);
     backdrop-filter: blur(8px);
     border: 1px solid var(--card-border);
     border-radius: 12px;
@@ -293,7 +282,7 @@
   .input:focus,
   .select:focus {
     border-color: var(--active-color);
-    background: rgba(4, 47, 46, 0.75);
+    background: rgba(28, 14, 38, 0.78);
     box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
   }
   .input::placeholder { color: var(--text-faint); }
@@ -306,7 +295,7 @@
     padding-right: 40px;
     cursor: pointer;
   }
-  .select option { background: #134e4a; color: var(--text); }
+  .select option { background: #2a1226; color: var(--text); }
 
   /* ===== Автодополнение ===== */
   .autocomplete-wrap { position: relative; }
@@ -314,7 +303,7 @@
     position: absolute;
     top: calc(100% + 4px);
     left: 0; right: 0;
-    background: rgba(4, 47, 46, 0.95);
+    background: rgba(26, 13, 36, 0.96);
     backdrop-filter: blur(12px);
     border: 1px solid var(--card-border);
     border-radius: 12px;
@@ -331,16 +320,16 @@
     padding: 10px 14px;
     cursor: pointer;
     transition: background 0.12s ease;
-    border-bottom: 1px solid rgba(45, 212, 191, 0.08);
+    border-bottom: 1px solid rgba(255, 190, 120, 0.10);
   }
   .autocomplete-item:last-child { border-bottom: none; }
   .autocomplete-item:hover,
-  .autocomplete-item.highlight { background: rgba(251, 113, 133, 0.15); }
+  .autocomplete-item.highlight { background: rgba(255, 166, 61, 0.16); }
   .autocomplete-avatar {
     width: 28px; height: 28px;
     border-radius: 50%;
     background-size: cover; background-position: center;
-    background-color: rgba(4, 47, 46, 0.8);
+    background-color: rgba(28, 14, 38, 0.82);
     border: 1px solid var(--card-border);
     flex-shrink: 0;
   }
@@ -365,7 +354,7 @@
     gap: 12px;
   }
   .count-btn {
-    background: rgba(4, 47, 46, 0.55);
+    background: rgba(40, 20, 52, 0.58);
     border: 1px solid var(--card-border);
     border-radius: 10px;
     padding: 0;
@@ -377,7 +366,7 @@
     flex-shrink: 0;
     transition: all 0.15s ease;
   }
-  .count-btn:hover { background: rgba(4, 47, 46, 0.75); border-color: var(--coral-light); }
+  .count-btn:hover { background: rgba(28, 14, 38, 0.78); border-color: var(--coral-light); }
   .count-btn:active { transform: scale(0.95); }
   .count-input {
     flex: 1;
@@ -391,7 +380,7 @@
   .submit-btn {
     width: 100%;
     background: linear-gradient(135deg, var(--coral), var(--coral-light));
-    color: #1a1a2e;
+    color: #2a1206;
     font-weight: 600;
     font-size: 16px;
     padding: 16px 24px;
@@ -405,7 +394,7 @@
   }
   .submit-btn:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 10px 28px rgba(251, 113, 133, 0.4);
+    box-shadow: 0 10px 28px rgba(255, 138, 76, 0.45);
   }
   .submit-btn:disabled {
     opacity: 0.4;
@@ -435,16 +424,16 @@
     display: block;
   }
   .notice.loading {
-    background: rgba(45, 212, 191, 0.12);
-    border: 1px solid rgba(45, 212, 191, 0.4);
-    color: #5eead4;
+    background: rgba(255, 166, 61, 0.14);
+    border: 1px solid rgba(255, 166, 61, 0.42);
+    color: #ffd89b;
     display: block;
   }
 
   .last-entries {
     margin-top: 24px;
     padding: 14px 16px;
-    background: rgba(4, 47, 46, 0.35);
+    background: rgba(40, 20, 52, 0.4);
     border: 1px solid var(--card-border);
     border-radius: 12px;
     backdrop-filter: blur(8px);
@@ -461,7 +450,7 @@
     font-size: 13px;
     color: var(--text-dim);
     padding: 4px 0;
-    border-bottom: 1px solid rgba(45, 212, 191, 0.06);
+    border-bottom: 1px solid rgba(255, 190, 120, 0.08);
   }
   .last-entry:last-child { border-bottom: none; }
   .last-entry-dot {
@@ -483,22 +472,25 @@
 <body>
   <div class="wrap">
 
-    <!-- ===== Экран входа ===== -->
+    <!-- ===== Экран входа (Google-аккаунт) ===== -->
     <div id="gate" class="gate">
       <h1 class="gate-title">🌊 Защищённый вход</h1>
       <p class="gate-subtitle">Выдача билетов · Лето 2026</p>
-      <form id="gate-form" class="gate-form" onsubmit="return false;">
-        <input id="gate-input" class="gate-input" type="password" placeholder="Код доступа" autocomplete="off">
-        <button id="gate-submit" class="gate-button" type="submit">Войти</button>
+      <div class="gate-form">
+        <div id="gsi-button"></div>
+        <p class="gate-hint">Войди Google-аккаунтом стримера или модератора.<br>Доступ по списку — чужие аккаунты билеты выдать не смогут.</p>
         <div id="gate-error" class="gate-error"></div>
-      </form>
+      </div>
     </div>
 
     <!-- ===== Главный экран ===== -->
     <div id="app" class="app">
       <div class="top-bar">
         <div class="top-title">🎟️ Билеты · <span id="active-streamer-label" class="top-title-accent">не выбрано</span></div>
-        <button id="logout-btn" class="logout-btn">Выйти</button>
+        <div class="top-account">
+          <span id="account-email" class="account-email"></span>
+          <button id="logout-btn" class="logout-btn">Выйти</button>
+        </div>
       </div>
 
       <!-- Выбор стримера -->
@@ -574,11 +566,6 @@
 // ============================================================
 // Утилиты
 // ============================================================
-async function sha256(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
 function parseCSV(text) {
   const rows = [];
   let row = [], cell = '', inQ = false;
@@ -846,6 +833,12 @@ const notice = document.getElementById('notice');
 async function submitTicket() {
   if (submitBtn.disabled) return;
 
+  if (!tokenValid()) {
+    showNotice('error', '❌ Сессия входа истекла. Войди через Google снова.');
+    signOut();
+    return;
+  }
+
   const streamer = selectedStreamer;
   const nick = nickInput.value.trim();
   const source = document.getElementById('source-select').value;
@@ -855,9 +848,8 @@ async function submitTicket() {
   showNotice('loading', '⏳ Отправляю...');
 
   try {
-    const passwordHash = await sha256(currentPassword);
     const payload = {
-      passwordHash: passwordHash,
+      idToken: idToken,
       streamer: streamer,
       nick: nick,
       source: source,
@@ -948,19 +940,36 @@ function renderSessionEntries() {
 }
 
 // ============================================================
-// Авторизация
+// Авторизация через Google-аккаунт (Google Identity Services)
+//
+// Безопасность держится на СЕРВЕРЕ (Apps Script). Клиент получает от
+// Google подписанный ID-токен и шлёт его при каждой выдаче. Apps Script
+// проверяет подпись токена и сверяет email с белым списком. Подделать
+// токен из консоли нельзя — нужен приватный ключ Google. Поэтому старый
+// эксплойт (скопировать хэш и слать fetch'ем) больше не работает.
 // ============================================================
-let currentPassword = null;
+let idToken = null;
+let account = { email: null, name: null, exp: 0 };
 
-async function tryLogin(password) {
-  const hash = await sha256(password);
-  if (hash === PASSWORD_HASH) {
-    currentPassword = password;
-    try { localStorage.setItem('form_auth', password); } catch(e) {}
-    enterApp();
-    return true;
-  }
-  return false;
+function decodeJwt(token) {
+  try {
+    const part = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(decodeURIComponent(escape(atob(part))));
+  } catch (e) { return {}; }
+}
+
+// exp — в секундах. Токен считаем валидным, если до истечения ещё >60с.
+function tokenValid() {
+  return !!idToken && account.exp * 1000 - Date.now() > 60000;
+}
+
+function handleCredentialResponse(response) {
+  idToken = response.credential;
+  const p = decodeJwt(idToken);
+  account = { email: p.email || '', name: p.name || p.email || '', exp: parseInt(p.exp, 10) || 0 };
+  const emailEl = document.getElementById('account-email');
+  if (emailEl) emailEl.textContent = account.email;
+  enterApp();
 }
 
 async function enterApp() {
@@ -982,53 +991,43 @@ async function enterApp() {
   nickInput.focus();
 }
 
-// Логин по форме
-document.getElementById('gate-submit').addEventListener('click', async () => {
-  const input = document.getElementById('gate-input');
-  const errorEl = document.getElementById('gate-error');
-  errorEl.textContent = '';
-  const pw = input.value.trim();
-  if (!pw) return;
-
-  if (!PASSWORD_HASH || PASSWORD_HASH.startsWith('PASTE_')) {
-    errorEl.textContent = 'Не настроен PASSWORD_HASH в коде';
-    return;
-  }
-
-  const ok = await tryLogin(pw);
-  if (!ok) {
-    errorEl.textContent = 'Неверный код';
-    input.value = '';
-    input.focus();
-  }
-});
-
-document.getElementById('gate-input').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') document.getElementById('gate-submit').click();
-});
-
-// Logout
-document.getElementById('logout-btn').addEventListener('click', () => {
-  if (!confirm('Выйти из защищённой формы? Придётся снова ввести код.')) return;
-  try { localStorage.removeItem('form_auth'); } catch(e) {}
-  currentPassword = null;
+function signOut() {
+  try { if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch (e) {}
+  idToken = null;
+  account = { email: null, name: null, exp: 0 };
+  const emailEl = document.getElementById('account-email');
+  if (emailEl) emailEl.textContent = '';
   document.body.classList.remove('streamer-ppk', 'streamer-ilyich', 'streamer-dipsy');
   document.getElementById('app').classList.remove('active');
   document.getElementById('gate').style.display = 'block';
-  document.getElementById('gate-input').value = '';
-  document.getElementById('gate-input').focus();
+}
+
+document.getElementById('logout-btn').addEventListener('click', () => {
+  if (!confirm('Выйти из формы? Придётся снова войти через Google.')) return;
+  signOut();
 });
 
-// Автологин из localStorage
-(async () => {
-  try {
-    const saved = localStorage.getItem('form_auth');
-    if (saved) {
-      const ok = await tryLogin(saved);
-      if (!ok) localStorage.removeItem('form_auth');
-    }
-  } catch(e) {}
-  document.getElementById('gate-input').focus();
+// Инициализация Google Identity Services, когда библиотека загрузится
+(function initGis() {
+  const errorEl = document.getElementById('gate-error');
+  if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.startsWith('ВСТАВЬ')) {
+    if (errorEl) errorEl.textContent = 'Не настроен GOOGLE_CLIENT_ID в коде';
+    return;
+  }
+  if (!(window.google && google.accounts && google.accounts.id)) {
+    setTimeout(initGis, 100); // ждём загрузки gsi/client
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleCredentialResponse,
+    auto_select: true,
+  });
+  google.accounts.id.renderButton(
+    document.getElementById('gsi-button'),
+    { theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'pill' }
+  );
+  google.accounts.id.prompt(); // тихий автологин / One Tap для вернувшихся
 })();
 </script>
 </body>
