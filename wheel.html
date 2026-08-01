@@ -1110,16 +1110,11 @@ function renderWheel() {
     const textRad = (seg.midAngle - 90) * Math.PI / 180;
     const tx = cx + Math.cos(textRad) * textRadius;
     const ty = cy + Math.sin(textRad) * textRadius;
-    // Ориентацию считаем по тому, где сектор окажется НА ЭКРАНЕ с учётом
-    // текущего поворота колеса. Иначе после прокрутки половина подписей
-    // встаёт вверх ногами: они поворачиваются вместе с колесом.
-    let textRot = seg.midAngle - 90;
-    let anchor = 'end';
-    const onScreen = ((textRot + currentRotation) % 360 + 360) % 360;
-    if (onScreen > 90 && onScreen < 270) {
-      textRot += 180;      // развернуть, чтобы не читалось вверх ногами
-      anchor = 'start';
-    }
+    // Базовый (неперевёрнутый) угол подписи — вдоль радиуса, наружу.
+    // Реальную ориентацию проставляет updateLabelOrientation(): она
+    // переворачивает подписи прямо во время вращения, чтобы ни одна
+    // не подъезжала к стрелке вверх ногами.
+    const baseRot = seg.midAngle - 90;
     const fontSize = Math.min(3.2, Math.max(1.5, seg.angle * 0.4));
     let displayNick = seg.ticket.nick;
     if (displayNick.length > 18) displayNick = displayNick.substring(0, 17) + '…';
@@ -1129,8 +1124,9 @@ function renderWheel() {
     if (showText) {
       // paint-order + обводка вместо тени: в SVG читается надёжнее
       groupContent += `<text x="${tx}" y="${ty}" fill="#fff" font-size="${fontSize}"
-                       text-anchor="${anchor}" dominant-baseline="middle"
-                       transform="rotate(${textRot} ${tx} ${ty})"
+                       data-base="${baseRot.toFixed(3)}" data-tx="${tx.toFixed(3)}" data-ty="${ty.toFixed(3)}"
+                       text-anchor="end" dominant-baseline="middle"
+                       transform="rotate(${baseRot} ${tx} ${ty})"
                        style="paint-order: stroke; stroke: rgba(0,0,0,0.6); stroke-width: 0.55;
                               font-weight: 600; pointer-events: none;">${esc(displayNick)}</text>`;
     }
@@ -1142,6 +1138,37 @@ function renderWheel() {
     </g>
     <circle cx="50" cy="50" r="6" fill="#150c28" stroke="#ffa63d" stroke-width="0.5"/>
   `;
+
+  labelCache = svg.querySelectorAll('#wheel-group text[data-base]');
+  updateLabelOrientation(currentRotation);
+}
+
+// ============================================================
+// Ориентация подписей во время вращения
+//
+// Подписи крутятся ВМЕСТЕ с колесом. Если выставить их один раз, то
+// написанная «под левую половину» подпись приедет к стрелке справа
+// вверх ногами. Поэтому переворачиваем их на лету: как только подпись
+// пересекает верх или низ круга, разворачиваем её на 180°.
+//
+// Дёшево: за кадр считаем только углы, а в DOM пишем лишь тем подписям,
+// у которых состояние реально изменилось (обычно 0–2 за кадр).
+// ============================================================
+let labelCache = [];
+
+function updateLabelOrientation(rotDeg) {
+  for (let i = 0; i < labelCache.length; i++) {
+    const el = labelCache[i];
+    const base = parseFloat(el.dataset.base);
+    const onScreen = (((base + rotDeg) % 360) + 360) % 360;
+    // В этом секторе экрана текст читался бы справа налево — переворачиваем
+    const flipped = (onScreen > 90 && onScreen < 270) ? '1' : '0';
+    if (el.dataset.flipped === flipped) continue;   // ничего не поменялось
+    el.dataset.flipped = flipped;
+    const rot = flipped === '1' ? base + 180 : base;
+    el.setAttribute('transform', `rotate(${rot} ${el.dataset.tx} ${el.dataset.ty})`);
+    el.setAttribute('text-anchor', flipped === '1' ? 'start' : 'end');
+  }
 }
 
 function sectorPath(cx, cy, r, startAngle, endAngle) {
@@ -1229,9 +1256,7 @@ async function spin(callback, forcedIdx) {
   // Используем ту же ease-out функцию для расчёта текущего угла.
   await trackPointerTicks(startRotation, finalRotation, duration, segments);
 
-  // Колесо встало — перерисовываем, чтобы подписи выровнялись под финальный
-  // угол. Поворот группы при этом сохраняется, скачка картинки нет.
-  renderWheel();
+  updateLabelOrientation(finalRotation);   // финальная выверка подписей
 
   await new Promise(resolve => setTimeout(resolve, 100)); // небольшая пауза
   isSpinning = false;
@@ -1306,6 +1331,9 @@ async function trackPointerTicks(startRot, endRot, dur, segments) {
       const t = Math.min(elapsed / dur, 1);
       const eased = easeOutBezier(t);
       const currentRot = startRot + totalDelta * eased;
+      // Разворачиваем подписи прямо в движении — чтобы к стрелке
+      // ни одна не подъехала вверх ногами
+      updateLabelOrientation(currentRot);
       const pointerOnWheel = normalizeAngle(POINTER_ANGLE - currentRot);
 
       for (const boundary of boundaries) {
