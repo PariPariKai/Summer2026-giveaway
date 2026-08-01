@@ -6,6 +6,12 @@
 <title>Summer Wheel</title>
 <meta name="robots" content="noindex,nofollow">
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js" defer></script>
+
 <!-- ============================================================
      ⚙ НАСТРОЙКА ⚙
      TICKETS_CSV_URL — лист Tickets из новой таблицы летнего ивента
@@ -24,43 +30,17 @@
 </script>
 
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* Палитра и фоновая сцена — в theme.css */
 
   body {
-    background:
-      linear-gradient(180deg,
-        #042f2e 0%,
-        #134e4a 30%,
-        #0d9488 65%,
-        #5eead4 90%,
-        #fef3c7 100%
-      );
-    background-attachment: fixed;
-    min-height: 100vh;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    color: #fff;
     padding: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    overflow-x: hidden;
-    position: relative;
-  }
-
-  /* Блики на воде */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      radial-gradient(ellipse 600px 200px at 20% 30%, rgba(45, 212, 191, 0.10), transparent 60%),
-      radial-gradient(ellipse 800px 250px at 80% 60%, rgba(251, 113, 133, 0.08), transparent 60%);
-    pointer-events: none;
-    z-index: 0;
   }
 
   /* ===== Экран входа ===== */
-  .gate { margin-top: 20vh; text-align: center; }
+  .gate { margin-top: 20vh; text-align: center; position: relative; z-index: 1; }
   .gate-title {
     font-size: 14px; letter-spacing: 4px;
     color: rgba(255,255,255,0.5);
@@ -73,23 +53,24 @@
     color: #fff; font-family: inherit; font-size: 18px;
     width: 260px; outline: none; text-align: center; letter-spacing: 4px;
   }
-  .gate-input:focus { border-color: rgba(251,113,133,0.5); }
+  .gate-input:focus { border-color: rgba(255,166,61,0.6); }
   .gate-error { color: #F09595; font-size: 13px; margin-top: 12px; min-height: 18px; }
   .gate-button {
     margin-top: 14px; background: transparent;
-    border: 1px solid rgba(251,113,133,0.4);
-    color: #fb7185; padding: 10px 24px;
+    border: 1px solid rgba(255,166,61,0.5);
+    color: var(--accent); padding: 10px 24px;
     font-family: inherit; font-size: 13px; letter-spacing: 2px;
     text-transform: uppercase; border-radius: 8px; cursor: pointer;
     transition: all 0.15s ease;
   }
-  .gate-button:hover { background: rgba(251,113,133,0.1); }
+  .gate-button:hover { background: rgba(255,166,61,0.12); }
 
   /* ===== Основной интерфейс ===== */
   .app {
     width: 100%; max-width: 1100px;
     display: none;
     flex-direction: column; align-items: center;
+    position: relative; z-index: 1;
   }
 
   .app-header {
@@ -97,7 +78,7 @@
     justify-content: space-between; align-items: center;
     margin-bottom: 20px; padding: 0 4px;
   }
-  .app-title { font-size: 18px; letter-spacing: 3px; color: #fb7185; text-transform: uppercase; }
+  .app-title { font-size: 18px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; }
   .app-stats { font-size: 12px; color: rgba(255,255,255,0.5); letter-spacing: 1px; }
 
   /* ===== Колесо ===== */
@@ -145,7 +126,7 @@
   }
 
   .ctrl-btn {
-    background: rgba(4,47,46,0.6);
+    background: rgba(40,20,52,0.62);
     border: 1px solid rgba(255,255,255,0.14);
     color: rgba(255,255,255,0.85); padding: 12px 22px;
     font-family: inherit; font-size: 14px; letter-spacing: 1px;
@@ -153,23 +134,23 @@
     transition: all 0.15s ease;
   }
   .ctrl-btn:hover:not(:disabled) {
-    background: rgba(4,47,46,0.85);
+    background: rgba(40,20,52,0.85);
     border-color: rgba(255,255,255,0.3);
     transform: translateY(-1px);
   }
   .ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .ctrl-btn.primary {
-    background: rgba(4,47,46,0.75);
-    border-color: rgba(94,234,212,0.4);
-    color: #ccfbf1;
+    background: rgba(40,20,52,0.75);
+    border-color: rgba(255,200,107,0.45);
+    color: #ffe4a3;
   }
   .ctrl-btn.primary:hover:not(:disabled) {
-    background: rgba(13,148,136,0.35);
-    border-color: rgba(94,234,212,0.7);
+    background: rgba(255,138,76,0.28);
+    border-color: rgba(255,200,107,0.75);
     box-shadow: 0 4px 16px rgba(0,0,0,0.25);
   }
   .ctrl-btn.danger {
-    background: rgba(4,47,46,0.6);
+    background: rgba(40,20,52,0.62);
     border-color: rgba(240,149,149,0.35); color: #f2c4c4;
   }
   .ctrl-btn.danger:hover:not(:disabled) { background: rgba(216,90,48,0.2); }
@@ -192,7 +173,7 @@
     font-size: 13px; font-weight: 500;
     border-radius: 6px; cursor: pointer; transition: all 0.15s ease;
   }
-  .duration-btn.active { background: rgba(94,234,212,0.18); color: #99f6e4; }
+  .duration-btn.active { background: rgba(255,200,107,0.22); color: #ffd89b; }
   .duration-btn:hover:not(.active) { color: #fff; }
 
   /* Звук */
@@ -209,10 +190,10 @@
 
   /* ===== Режим выбывания индикатор ===== */
   .elimination-status {
-    background: rgba(45,212,191,0.1);
-    border: 1px solid rgba(45,212,191,0.3);
+    background: rgba(255,166,61,0.12);
+    border: 1px solid rgba(255,166,61,0.32);
     border-radius: 8px; padding: 10px 20px;
-    color: #AFA9EC; font-size: 13px; letter-spacing: 1px;
+    color: #ffcf5c; font-size: 13px; letter-spacing: 1px;
     text-align: center; margin-bottom: 16px;
     display: none;
   }
@@ -253,7 +234,7 @@
     border-radius: 6px;
   }
   .log-entry:last-child { border-bottom: none; }
-  .log-entry.winner { color: #fb7185; font-weight: 600; font-size: 15px; }
+  .log-entry.winner { color: var(--accent); font-weight: 600; font-size: 15px; }
   .log-entry .num {
     color: rgba(255,255,255,0.3); margin-right: 8px;
     font-variant-numeric: tabular-nums;
@@ -289,9 +270,9 @@
 
   /* Новая запись выпрыгивает большой и усаживается в список */
   @keyframes logPop {
-    0%   { transform: scale(1.6); opacity: 0; background: rgba(251,113,133,0.35); }
-    35%  { transform: scale(1.45); opacity: 1; background: rgba(251,113,133,0.3); }
-    70%  { transform: scale(1.15); background: rgba(251,113,133,0.18); }
+    0%   { transform: scale(1.6); opacity: 0; background: rgba(255,138,76,0.4); }
+    35%  { transform: scale(1.45); opacity: 1; background: rgba(255,138,76,0.35); }
+    70%  { transform: scale(1.15); background: rgba(255,138,76,0.22); }
     100% { transform: scale(1); background: transparent; }
   }
   .log-entry.fresh {
@@ -439,15 +420,15 @@
     text-align: center;
     padding: 70px 100px;
     border-radius: 24px;
-    background: linear-gradient(180deg, #2a1d0a 0%, #134e4a 100%);
-    border: 4px solid #fb7185;
+    background: linear-gradient(180deg, #2a1226 0%, #150c28 100%);
+    border: 4px solid var(--accent);
     position: relative;
     overflow: hidden;
     animation: winnerCardIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     box-shadow:
-      0 0 80px rgba(251,113,133,0.4),
-      0 0 160px rgba(251,113,133,0.2),
-      inset 0 0 60px rgba(251,113,133,0.1);
+      0 0 80px rgba(255,166,61,0.5),
+      0 0 160px rgba(255,138,76,0.25),
+      inset 0 0 60px rgba(255,166,61,0.12);
   }
   @keyframes winnerCardIn {
     from { transform: scale(0.5) rotateY(180deg); opacity: 0; }
@@ -459,17 +440,17 @@
     content: '';
     position: absolute; inset: -4px;
     border-radius: 24px;
-    border: 4px solid #fb7185;
+    border: 4px solid var(--accent);
     animation: winnerGlow 1.8s ease-in-out infinite;
     pointer-events: none;
   }
   @keyframes winnerGlow {
     0%, 100% {
-      box-shadow: 0 0 30px rgba(251,113,133,0.6), 0 0 80px rgba(251,113,133,0.3);
+      box-shadow: 0 0 30px rgba(255,166,61,0.65), 0 0 80px rgba(255,138,76,0.35);
       opacity: 0.7;
     }
     50% {
-      box-shadow: 0 0 60px rgba(251,113,133,1), 0 0 140px rgba(251,113,133,0.5);
+      box-shadow: 0 0 60px rgba(255,166,61,1), 0 0 140px rgba(255,166,61,0.6);
       opacity: 1;
     }
   }
@@ -480,7 +461,7 @@
     position: absolute;
     top: -50%; left: -50%;
     width: 200%; height: 200%;
-    background: linear-gradient(45deg, transparent 30%, rgba(251,113,133,0.18) 50%, transparent 70%);
+    background: linear-gradient(45deg, transparent 30%, rgba(255,138,76,0.22) 50%, transparent 70%);
     animation: shimmer 3s infinite linear;
     pointer-events: none;
   }
@@ -491,31 +472,31 @@
 
   .winner-label {
     font-size: 20px; letter-spacing: 6px;
-    color: #fb7185; text-transform: uppercase;
+    color: var(--accent); text-transform: uppercase;
     margin-bottom: 30px;
     position: relative;
-    text-shadow: 0 0 20px rgba(251,113,133,0.6);
+    text-shadow: 0 0 20px rgba(255,166,61,0.65);
   }
 
   .winner-avatar {
     width: 200px; height: 200px;
     border-radius: 50%;
-    border: 6px solid #fb7185;
+    border: 6px solid var(--accent);
     background-size: cover; background-position: center;
-    background-color: #412402;
+    background-color: #2a1226;
     margin: 0 auto 28px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 64px; font-weight: 500; color: #fb7185;
+    font-size: 64px; font-weight: 500; color: var(--accent);
     position: relative;
     box-shadow:
-      0 0 40px rgba(251,113,133,0.5),
+      0 0 40px rgba(255,166,61,0.6),
       inset 0 0 20px rgba(0,0,0,0.4);
   }
 
   .winner-nick {
     font-size: 64px; color: #fff; font-weight: 600;
     margin-bottom: 20px;
-    text-shadow: 0 0 25px rgba(251,113,133,0.7);
+    text-shadow: 0 0 25px rgba(255,166,61,0.75);
     position: relative;
     letter-spacing: 1px;
     word-break: break-word;
@@ -614,8 +595,8 @@
           <svg class="wheel-svg" id="wheel" viewBox="0 0 100 100"></svg>
           <div class="wheel-pointer" id="wheel-pointer">
             <svg viewBox="0 0 52 60">
-              <polygon points="26,58 4,8 48,8" fill="#fb7185" stroke="#042f2e" stroke-width="2" stroke-linejoin="round"/>
-              <circle cx="26" cy="10" r="5" fill="#fb7185" stroke="#042f2e" stroke-width="2"/>
+              <polygon points="26,58 4,8 48,8" fill="#ffa63d" stroke="#150c28" stroke-width="2" stroke-linejoin="round"/>
+              <circle cx="26" cy="10" r="5" fill="#ffa63d" stroke="#150c28" stroke-width="2"/>
             </svg>
           </div>
         </div>
@@ -772,10 +753,12 @@ let finalists = null; // пустые слоты 1–5; заполняются �
 let log = [];
 let soundOn = true;
 
+// Закатная палитра секторов: тёплое ядро + прохладные сумеречные акценты.
+// Все оттенки достаточно тёмные, чтобы белые ники читались поверх.
 const SECTOR_COLORS = [
-  '#2dd4bf', '#fb7185', '#D85A30', '#97C459',
-  '#5BA9E5', '#E599C2', '#B58FF5', '#F0B370',
-  '#86D7C9', '#E58686', '#9CB870', '#5B7FE5'
+  '#e8632f', '#8b4bab', '#f0913a', '#c4356b',
+  '#5b5fc7', '#d1483f', '#6b4b9e', '#e0762a',
+  '#b83d8a', '#4a6fc4', '#a8562e', '#9c3f63'
 ];
 
 // ============================================================
@@ -1075,7 +1058,7 @@ function renderWheel() {
     if (displayNick.length > maxChars) displayNick = displayNick.substring(0, maxChars - 1) + '…';
     const showText = seg.angle >= 2;
 
-    groupContent += `<path d="${path}" fill="${color}" stroke="#042f2e" stroke-width="0.2"/>`;
+    groupContent += `<path d="${path}" fill="${color}" stroke="#150c28" stroke-width="0.2"/>`;
     if (showText) {
       groupContent += `<text x="${tx}" y="${ty}" fill="#fff" font-size="${fontSize}"
                        text-anchor="middle" dominant-baseline="middle"
@@ -1088,7 +1071,7 @@ function renderWheel() {
     <g id="wheel-group" style="transform-origin: 50% 50%; transform: rotate(${currentRotation}deg); transition: none;">
       ${groupContent}
     </g>
-    <circle cx="50" cy="50" r="6" fill="#042f2e" stroke="#fb7185" stroke-width="0.5"/>
+    <circle cx="50" cy="50" r="6" fill="#150c28" stroke="#ffa63d" stroke-width="0.5"/>
   `;
 }
 
@@ -1307,7 +1290,7 @@ function launchConfetti() {
   container.innerHTML = '';
 
   // Палитра золотых оттенков
-  const goldColors = ['#fb7185', '#FFD700', '#FFE194', '#F0B370', '#FFCC33', '#FFFFFF'];
+  const goldColors = ['var(--accent)', '#FFD700', '#FFE194', '#F0B370', '#FFCC33', '#FFFFFF'];
   const shapes = ['rect', 'circle', 'star'];
   const numPieces = 120;
 

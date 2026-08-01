@@ -1,0 +1,482 @@
+/* ============================================================
+   ЛЕТНИЙ РОЗЫГРЫШ 2026 — АВГУСТ · «ЯНТАРНЫЙ ЗАКАТ»
+   Общая тема для всех страниц (index / tickets / wheel / form).
+   Меняешь тему в одном месте — меняется весь сайт.
+   ============================================================ */
+
+:root {
+  /* ===== Небо заката (сверху вниз) ===== */
+  --night:       #120b26;
+  --dusk:        #241541;
+  --violet:      #452254;
+  --plum:        #6d2b56;
+  --rose:        #a83c5b;
+  --ember:       #d95538;
+  --orange:      #f47b34;
+  --amber:       #ffa63d;
+  --gold-warm:   #ffc86b;
+  --sand:        #ffe3b0;
+  --sand-pale:   #fff2da;
+
+  /* ===== Море ===== */
+  --sea-far:     #b8563f;
+  --sea-mid:     #4a2350;
+  --sea-deep:    #170e2c;
+
+  /* ===== Акценты ===== */
+  --accent:        #ff8a4c;
+  --accent-light:  #ffb27a;
+  --accent-glow:   rgba(255, 138, 76, 0.45);
+
+  /* ===== Билеты ===== */
+  --gold:          #ffcf5c;
+  --gold-light:    #ffe4a3;
+  --gold-glow:     rgba(255, 207, 92, 0.6);
+  --silver:        #cfd8e8;
+  --silver-light:  #e8eefa;
+  --silver-glow:   rgba(207, 216, 232, 0.55);
+  --bronze:        #d98548;
+
+  /* ===== Стримеры (айдентика — оттенки сохранены) ===== */
+  --ppk-color:     #2ad4ef;
+  --ppk-bg:        rgba(42, 212, 239, 0.14);
+  --ppk-border:    rgba(42, 212, 239, 0.45);
+  --ppk-glow:      rgba(42, 212, 239, 0.35);
+
+  --ilyich-color:  #3ddc9a;
+  --ilyich-bg:     rgba(61, 220, 154, 0.14);
+  --ilyich-border: rgba(61, 220, 154, 0.45);
+  --ilyich-glow:   rgba(61, 220, 154, 0.35);
+
+  --dipsy-color:   #c9a8ff;
+  --dipsy-bg:      rgba(201, 168, 255, 0.14);
+  --dipsy-border:  rgba(201, 168, 255, 0.5);
+  --dipsy-glow:    rgba(201, 168, 255, 0.4);
+
+  /* ===== Текст ===== */
+  --text:        #fff4e8;
+  --text-dim:    rgba(255, 244, 232, 0.66);
+  --text-faint:  rgba(255, 244, 232, 0.38);
+
+  /* ===== Стекло карточек (тёплая слива) ===== */
+  --card-bg:      rgba(46, 24, 58, 0.55);
+  --card-solid:   rgba(34, 18, 46, 0.88);
+  --card-border:  rgba(255, 190, 120, 0.20);
+  --card-hi:      rgba(255, 214, 160, 0.35);
+
+  /* Совместимость со старой (июльской) палитрой — чтобы
+     не переписанные правила не «выпадали» из темы */
+  --ocean-deep:  #241541;
+  --ocean-mid:   #452254;
+  --ocean-light: #d95538;
+  --coral:       var(--accent);
+  --coral-light: var(--accent-light);
+  --sand-warm:   var(--gold-warm);
+
+  --font-display: 'Unbounded', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  --horizon: 60vh;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  /* Небо задаётся сразу в CSS — чтобы не было вспышки до отрисовки сцены */
+  background:
+    linear-gradient(180deg,
+      var(--night)   0%,
+      var(--dusk)    14%,
+      var(--violet)  28%,
+      var(--plum)    40%,
+      var(--rose)    50%,
+      var(--ember)   56%,
+      var(--orange)  59%,
+      var(--amber)   60.5%,
+      var(--sea-far) 61%,
+      var(--sea-mid) 74%,
+      var(--sea-deep) 100%
+    );
+  background-attachment: fixed;
+  min-height: 100vh;
+  font-family: var(--font-body);
+  color: var(--text);
+  position: relative;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================
+   СЦЕНА ЗАКАТА (вставляется theme.js, лежит под контентом)
+   ============================================================ */
+.scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.scene > * { position: absolute; }
+
+/* --- Солнце: половина диска над горизонтом --- */
+.sun-glow {
+  left: 50%; top: var(--horizon);
+  width: 1500px; height: 1500px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle,
+    rgba(255, 224, 160, 0.50) 0%,
+    rgba(255, 196, 110, 0.34) 11%,
+    rgba(255, 140, 70, 0.20) 24%,
+    rgba(212, 85, 56, 0.10) 44%,
+    transparent 68%);
+}
+/* Солнце наполовину село за океан: нижняя половина диска срезана
+   ровно по линии горизонта — она «за водой». */
+.sun {
+  left: 50%; top: var(--horizon);
+  width: 300px; height: 300px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 45%,
+    #fff6dd 0%,
+    var(--sand) 26%,
+    var(--gold-warm) 48%,
+    var(--amber) 70%,
+    var(--orange) 100%);
+  /* box-shadow здесь НЕЛЬЗЯ: clip-path обрезал бы свечение по краям
+     элемента и получался бы видимый прямоугольник. Ореол — .sun-glow */
+  clip-path: inset(0 0 50% 0);   /* видна только часть выше горизонта */
+  animation: sunBreathe 9s ease-in-out infinite;
+}
+@keyframes sunBreathe {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.09); }
+}
+
+/* Яркое «пятно» на воде прямо под солнцем — там, где свет входит в море */
+.sun-pool {
+  left: 50%; top: var(--horizon);
+  width: 360px; height: 110px;
+  transform: translate(-50%, -6%);
+  background: radial-gradient(ellipse at 50% 0%,
+    rgba(255, 232, 180, 0.55) 0%,
+    rgba(255, 180, 110, 0.28) 45%,
+    transparent 72%);
+  filter: blur(7px);
+}
+
+/* --- Море --- */
+.sea {
+  left: 0; right: 0;
+  top: var(--horizon); bottom: 0;
+  background:
+    linear-gradient(180deg,
+      rgba(255, 190, 120, 0.55) 0%,
+      rgba(200, 95, 65, 0.35) 6%,
+      rgba(90, 42, 76, 0.55) 34%,
+      rgba(23, 14, 44, 0.92) 100%);
+}
+/* ===== Дорожка света на воде =====
+   Отдельные блики: чем дальше от солнца, тем короче, тусклее и реже.
+   Сами блики создаёт theme.js (класс .ray), стиль — здесь. */
+.sun-path {
+  left: 50%;
+  top: var(--horizon);
+  width: 32vw; max-width: 400px;   /* верхний блик ≈ ширина диска */
+  height: 34vh;
+  transform: translateX(-50%);
+}
+.sun-path .ray {
+  position: absolute;
+  left: 50%;
+  border-radius: 999px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255, 226, 176, 0.35) 12%,
+    rgba(255, 240, 205, 0.95) 50%,
+    rgba(255, 226, 176, 0.35) 88%,
+    transparent 100%);
+  filter: blur(0.7px);
+  animation: rayWobble 4s ease-in-out infinite;
+}
+/* Лёгкое покачивание — вода живая, блики «дышат».
+   --dx задаёт свой сдвиг каждому блику: строй не идеально ровный */
+@keyframes rayWobble {
+  0%, 100% { transform: translateX(calc(-50% + var(--dx, 0px) - 5px)) scaleX(0.96); }
+  50%      { transform: translateX(calc(-50% + var(--dx, 0px) + 5px)) scaleX(1.06); }
+}
+/* Тонкая световая линия самого горизонта */
+.horizon-line {
+  left: 0; right: 0;
+  top: var(--horizon);
+  height: 2px;
+  transform: translateY(-1px);
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255, 220, 160, 0.65) 30%,
+    rgba(255, 240, 210, 0.9) 50%,
+    rgba(255, 220, 160, 0.65) 70%,
+    transparent 100%);
+  filter: blur(0.5px);
+}
+
+/* --- Облака: вытянутые мазки, медленно плывут --- */
+.cloud {
+  border-radius: 50%;
+  filter: blur(14px);
+  opacity: 0.5;
+}
+.cloud-1 {
+  left: -10%; top: 16%;
+  width: 46vw; height: 46px;
+  background: linear-gradient(90deg, transparent, rgba(255, 170, 120, 0.5), transparent);
+  animation: drift 95s linear infinite;
+}
+.cloud-2 {
+  left: 30%; top: 27%;
+  width: 60vw; height: 34px;
+  background: linear-gradient(90deg, transparent, rgba(255, 130, 110, 0.42), transparent);
+  animation: drift 140s linear infinite reverse;
+}
+.cloud-3 {
+  left: 5%; top: 40%;
+  width: 70vw; height: 26px;
+  background: linear-gradient(90deg, transparent, rgba(255, 200, 150, 0.4), transparent);
+  animation: drift 115s linear infinite;
+}
+.cloud-4 {
+  left: 45%; top: 48%;
+  width: 40vw; height: 18px;
+  background: linear-gradient(90deg, transparent, rgba(255, 225, 190, 0.45), transparent);
+  animation: drift 80s linear infinite reverse;
+}
+@keyframes drift {
+  from { transform: translateX(-30vw); }
+  to   { transform: translateX(110vw); }
+}
+
+/* --- Пальмы по краям --- */
+.palm {
+  bottom: 0;
+  width: 300px; height: 62vh;
+  background-repeat: no-repeat;
+  background-position: bottom center;
+  background-size: contain;
+  opacity: 0.9;
+}
+.palm-left  { left: -34px; transform: scaleX(-1); }
+.palm-right { right: -50px; width: 240px; height: 50vh; opacity: 0.82; }
+
+/* --- Затемняющая вуаль: гарантирует читаемость текста --- */
+.scene-veil {
+  inset: 0;
+  background:
+    linear-gradient(180deg,
+      rgba(12, 7, 24, 0.55) 0%,
+      rgba(16, 9, 30, 0.34) 30%,
+      rgba(30, 12, 34, 0.30) 55%,
+      rgba(12, 7, 24, 0.55) 100%);
+}
+/* Виньетка по краям */
+.scene-vignette {
+  inset: 0;
+  background: radial-gradient(ellipse 90% 75% at 50% 45%, transparent 40%, rgba(10, 5, 20, 0.55) 100%);
+}
+/* Зерно — «плёночная» фактура, убирает пластиковость градиентов */
+.scene-grain {
+  inset: -50%;
+  width: 200%; height: 200%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  opacity: 0.055;
+  mix-blend-mode: overlay;
+  animation: grainShift 1.2s steps(3) infinite;
+}
+@keyframes grainShift {
+  0%   { transform: translate(0, 0); }
+  33%  { transform: translate(-1.5%, 1%); }
+  66%  { transform: translate(1%, -1.5%); }
+  100% { transform: translate(0, 0); }
+}
+
+/* ============================================================
+   ТИПОГРАФИКА
+   ============================================================ */
+.wrap { position: relative; z-index: 1; }
+
+.title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1.05;
+  background: linear-gradient(180deg, #fff8ec 0%, var(--sand) 42%, var(--gold-warm) 70%, var(--amber) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 3px 18px rgba(255, 150, 80, 0.45)) drop-shadow(0 2px 3px rgba(40, 10, 30, 0.5));
+}
+.subtitle {
+  font-family: var(--font-body);
+  font-weight: 500;
+  color: var(--sand);
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px rgba(40, 10, 30, 0.7);
+}
+.section-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+/* ============================================================
+   ОБЩИЕ КОМПОНЕНТЫ
+   ============================================================ */
+
+/* --- Стеклянная поверхность --- */
+.glass {
+  background: var(--card-bg);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  border: 1px solid var(--card-border);
+  box-shadow:
+    0 18px 45px rgba(10, 4, 20, 0.45),
+    inset 0 1px 0 var(--card-hi);
+}
+
+/* --- Кнопка-CTA --- */
+.cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  padding: 15px 34px;
+  border-radius: 16px;
+  text-decoration: none;
+  color: #2a1206;
+  background: linear-gradient(135deg, var(--gold-warm) 0%, var(--amber) 45%, var(--accent) 100%);
+  box-shadow:
+    0 10px 30px rgba(255, 138, 76, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+.cta-button::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -60%;
+  width: 40%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.55s ease;
+}
+.cta-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px rgba(255, 138, 76, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.cta-button:hover::after { left: 120%; }
+
+/* --- Навигация --- */
+.nav a {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  transition: color 0.15s ease;
+}
+.nav a:hover { color: var(--gold-warm); }
+
+/* --- Поле ввода --- */
+.search-input, .input, .select {
+  background: rgba(28, 14, 38, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  color: var(--text);
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.search-input:focus, .input:focus, .select:focus {
+  border-color: var(--amber);
+  background: rgba(28, 14, 38, 0.8);
+  box-shadow: 0 0 0 3px rgba(255, 166, 61, 0.16);
+}
+.search-input::placeholder, .input::placeholder { color: var(--text-faint); }
+
+/* --- Карточка стримера --- */
+.streamer-card {
+  background: rgba(40, 20, 52, 0.55);
+  backdrop-filter: blur(12px);
+  border: 1px solid;
+  border-radius: 16px;
+  text-decoration: none;
+  color: var(--text);
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 214, 160, 0.18);
+}
+.streamer-card.s-ppk    { border-color: var(--ppk-border); }
+.streamer-card.s-ilyich { border-color: var(--ilyich-border); }
+.streamer-card.s-dipsy  { border-color: var(--dipsy-border); }
+.streamer-card:hover { transform: translateY(-4px); }
+.streamer-card.s-ppk:hover    { box-shadow: 0 12px 30px var(--ppk-glow); }
+.streamer-card.s-ilyich:hover { box-shadow: 0 12px 30px var(--ilyich-glow); }
+.streamer-card.s-dipsy:hover  { box-shadow: 0 12px 30px var(--dipsy-glow); }
+
+.streamer-avatar {
+  border-radius: 50%;
+  border: 2px solid;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(28, 14, 38, 0.7);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600;
+}
+.streamer-card.s-ppk .streamer-avatar    { border-color: var(--ppk-color); color: var(--ppk-color); }
+.streamer-card.s-ilyich .streamer-avatar { border-color: var(--ilyich-color); color: var(--ilyich-color); }
+.streamer-card.s-dipsy .streamer-avatar  { border-color: var(--dipsy-color); color: var(--dipsy-color); }
+
+/* --- Подвал --- */
+.footer {
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  padding: 24px 20px;
+}
+
+/* ============================================================
+   Доступность: уважаем «уменьшить движение»
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .sun, .sun-path .ray, .cloud, .scene-grain,
+  .cta-button, .cta-button::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ============================================================
+   Мобильные: сцена компактнее, пальмы прячем
+   ============================================================ */
+@media (max-width: 760px) {
+  :root { --horizon: 46vh; }
+  .sun { width: 200px; height: 200px; }
+  .sun-glow { width: 900px; height: 900px; }
+  .sun-pool { width: 240px; height: 80px; }
+  .palm-left { left: -90px; opacity: 0.55; }
+  .palm-right { display: none; }
+  .sun-path { width: 52vw; }
+  /* На узком экране контент часто ложится прямо на солнце —
+     затемняем сцену сильнее, чтобы текст и кнопки читались */
+  .scene-veil {
+    background:
+      linear-gradient(180deg,
+        rgba(12, 7, 24, 0.62) 0%,
+        rgba(16, 9, 30, 0.48) 30%,
+        rgba(30, 12, 34, 0.46) 55%,
+        rgba(12, 7, 24, 0.62) 100%);
+  }
+}

@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Летний Розыгрыш — Билеты</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js" defer></script>
+
 <!-- ============================================================
      ⚙ НАСТРОЙКА ⚙
      ============================================================ -->
@@ -13,140 +19,59 @@
   const CONFIG_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pub?gid=222000002&single=true&output=csv";
   const VIEWERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pub?gid=222000001&single=true&output=csv";
   const HOME_URL = "./";
+
+  // Лимит серебра на стримера в месяц. Июнь — 100, июль — 50, август — 25.
+  // ВАЖНО: то же число должно стоять в index.html и в формуле MIN(...) в Sheets.
+  const SILVER_CAP = 25;
 </script>
 
 <style>
-  :root {
-    --ocean-deep:    #134e4a;
-    --ocean-mid:     #0d9488;
-    --ocean-light:   #2dd4bf;
-    --coral:         #fb7185;
-    --coral-light:   #fda4af;
-    --sand:          #fef3c7;
-    --sand-warm:     #fde68a;
+  /* Палитра, фоновая сцена и общие компоненты — в theme.css */
 
-    --silver:        #d4d4d8;
-    --silver-light:  #e5e7eb;
-    --silver-glow:   rgba(186, 230, 253, 0.6);
-    --gold:          #ffd700;
-    --gold-light:    #fde68a;
-    --gold-glow:     rgba(255, 215, 0, 0.6);
+  body { padding: 30px 20px 80px; }
 
-    /* Цвета стримеров */
-    --ppk-color:     #06b6d4;
-    --ppk-bg:        rgba(6, 182, 212, 0.15);
-    --ppk-border:    rgba(6, 182, 212, 0.45);
-
-    --ilyich-color:  #10b981;
-    --ilyich-bg:     rgba(16, 185, 129, 0.15);
-    --ilyich-border: rgba(16, 185, 129, 0.45);
-
-    --dipsy-color:   #a78bfa;
-    --dipsy-bg:      rgba(167, 139, 250, 0.15);
-    --dipsy-border:  rgba(167, 139, 250, 0.5);
-
-    --text:          #f0f9ff;
-    --text-dim:      rgba(240, 249, 255, 0.6);
-    --text-faint:    rgba(240, 249, 255, 0.35);
-
-    --card-bg:       rgba(4, 47, 46, 0.5);
-    --card-border:   rgba(45, 212, 191, 0.18);
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background:
-      linear-gradient(180deg,
-        #042f2e 0%,
-        #134e4a 35%,
-        #0d9488 70%,
-        #5eead4 92%,
-        #fef3c7 100%
-      );
-    background-attachment: fixed;
-    min-height: 100vh;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    color: var(--text);
-    padding: 30px 20px 80px;
-    position: relative;
-    overflow-x: hidden;
-  }
-
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      radial-gradient(ellipse 600px 200px at 20% 30%, rgba(45, 212, 191, 0.12), transparent 60%),
-      radial-gradient(ellipse 800px 250px at 80% 60%, rgba(251, 113, 133, 0.08), transparent 60%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .wrap { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+  .wrap { max-width: 1200px; margin: 0 auto; }
 
   .nav { margin-bottom: 18px; display: flex; gap: 16px; }
-  .nav a {
-    color: var(--text-dim);
-    text-decoration: none;
-    font-size: 13px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    transition: color 0.15s ease;
-  }
-  .nav a:hover { color: var(--coral-light); }
 
   /* ===== Шапка-герой ===== */
   .hero {
     position: relative;
-    border-radius: 18px;
+    border-radius: 22px;
     overflow: hidden;
     margin-bottom: 28px;
-    padding: 40px 24px 28px;
+    padding: 44px 24px 30px;
     text-align: center;
-    background: linear-gradient(135deg, #0f766e 0%, #0d9488 60%, #134e4a 100%);
-    border: 1px solid var(--card-border);
-    box-shadow: 0 16px 50px rgba(0, 0, 0, 0.35);
-    min-height: 220px;
+    min-height: 230px;
   }
+  /* Баннер из Config — с тёплой цветокоррекцией под закат */
   .hero-bg {
     position: absolute;
     inset: 0;
     background-size: cover;
     background-position: center;
     z-index: 0;
+    filter: saturate(0.55) sepia(0.45) hue-rotate(-25deg) brightness(0.62) contrast(1.05);
   }
   .hero-bg::after {
     content: '';
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(180deg, rgba(4, 47, 46, 0.55) 0%, rgba(4, 47, 46, 0.78) 60%, rgba(4, 47, 46, 0.92) 100%);
+      linear-gradient(180deg, rgba(255, 140, 70, 0.22) 0%, rgba(168, 60, 91, 0.28) 45%, rgba(18, 11, 38, 0.55) 100%),
+      linear-gradient(180deg, rgba(18, 11, 38, 0.35) 0%, rgba(18, 11, 38, 0.6) 65%, rgba(18, 11, 38, 0.85) 100%);
   }
-  .hero.no-bg .hero-bg { background-image: linear-gradient(180deg, rgba(251, 113, 133, 0.1) 0%, rgba(45, 212, 191, 0.06) 100%); }
+  .hero.no-bg { border: none; }
+  .hero.no-bg .hero-bg { background-image: none; }
   .hero.no-bg .hero-bg::after { content: none; }
+  .hero:not(.no-bg) {
+    border: 1px solid var(--card-border);
+    box-shadow: 0 20px 55px rgba(10, 4, 20, 0.5);
+  }
   .hero-content { position: relative; z-index: 1; }
 
-  .title {
-    font-size: 40px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    background: linear-gradient(135deg, var(--coral-light) 0%, var(--sand) 50%, var(--coral) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 6px;
-    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
-  }
-  .subtitle {
-    font-size: 11px;
-    letter-spacing: 4px;
-    color: var(--sand);
-    text-transform: uppercase;
-    margin-bottom: 22px;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-  }
+  .title { font-size: 42px; margin-bottom: 8px; }
+  .subtitle { font-size: 11px; letter-spacing: 4px; margin-bottom: 24px; }
 
   .streamers {
     display: flex;
@@ -160,35 +85,10 @@
     align-items: center;
     gap: 6px;
     padding: 10px 16px;
-    background: rgba(4, 47, 46, 0.55);
-    backdrop-filter: blur(10px);
-    border: 1px solid;
-    border-radius: 14px;
-    text-decoration: none;
-    color: var(--text);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
     min-width: 120px;
   }
-  .streamer-card.s-ppk    { border-color: var(--ppk-border); }
-  .streamer-card.s-ilyich { border-color: var(--ilyich-border); }
-  .streamer-card.s-dipsy  { border-color: var(--dipsy-border); }
-  .streamer-card:hover { transform: translateY(-3px); }
-  .streamer-card.s-ppk:hover    { box-shadow: 0 8px 24px rgba(6, 182, 212, 0.35); }
-  .streamer-card.s-ilyich:hover { box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35); }
-  .streamer-card.s-dipsy:hover  { box-shadow: 0 8px 24px rgba(167, 139, 250, 0.35); }
-  .streamer-avatar {
-    width: 58px; height: 58px;
-    border-radius: 50%;
-    border: 2px solid;
-    background-size: cover; background-position: center;
-    background-color: rgba(4, 47, 46, 0.6);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px; font-weight: 500;
-  }
-  .streamer-card.s-ppk .streamer-avatar    { border-color: var(--ppk-color); color: var(--ppk-color); }
-  .streamer-card.s-ilyich .streamer-avatar { border-color: var(--ilyich-color); color: var(--ilyich-color); }
-  .streamer-card.s-dipsy .streamer-avatar  { border-color: var(--dipsy-color); color: var(--dipsy-color); }
-  .streamer-nick { font-size: 13px; font-weight: 500; letter-spacing: 0.3px; }
+  .streamer-avatar { width: 58px; height: 58px; font-size: 20px; }
+  .streamer-nick { font-size: 13px; font-weight: 600; letter-spacing: 0.3px; }
 
   /* ===== Поиск ===== */
   .controls {
@@ -197,32 +97,18 @@
     margin-bottom: 24px;
   }
   .search-input {
-    background: rgba(4, 47, 46, 0.5);
-    backdrop-filter: blur(8px);
-    border: 1px solid var(--card-border);
-    border-radius: 10px;
-    padding: 12px 16px;
-    color: var(--text);
-    font-family: inherit;
+    padding: 13px 18px;
     font-size: 14px;
-    width: 320px;
+    width: 340px;
     max-width: 100%;
-    outline: none;
-    transition: all 0.15s ease;
   }
-  .search-input:focus {
-    border-color: var(--coral-light);
-    background: rgba(4, 47, 46, 0.7);
-    box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.15);
-  }
-  .search-input::placeholder { color: var(--text-faint); }
 
   /* ===== Заголовки секций ===== */
   .section-title {
     text-align: center;
-    font-size: 13px;
+    font-size: 14px;
     letter-spacing: 3px;
-    color: var(--text-dim);
+    color: var(--sand);
     text-transform: uppercase;
     margin-bottom: 18px;
   }
@@ -247,7 +133,7 @@
   }
   .podium-card.p-1 {
     border-color: var(--gold);
-    background: linear-gradient(180deg, rgba(255, 215, 0, 0.12) 0%, rgba(4, 47, 46, 0.65) 60%);
+    background: linear-gradient(180deg, rgba(255, 215, 0, 0.12) 0%, rgba(34, 18, 46, 0.72) 60%);
     box-shadow: 0 0 0 1px var(--gold-glow), 0 12px 40px rgba(255, 215, 0, 0.15);
   }
   .podium-card.p-1::before {
@@ -260,8 +146,8 @@
     pointer-events: none; z-index: 0;
   }
   @keyframes shimmer { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
-  .podium-card.p-2 { border-color: var(--silver); background: linear-gradient(180deg, rgba(212, 212, 216, 0.1) 0%, rgba(4, 47, 46, 0.65) 60%); }
-  .podium-card.p-3 { border-color: #cd7f32; background: linear-gradient(180deg, rgba(205, 127, 50, 0.12) 0%, rgba(4, 47, 46, 0.65) 60%); }
+  .podium-card.p-2 { border-color: var(--silver); background: linear-gradient(180deg, rgba(212, 212, 216, 0.1) 0%, rgba(34, 18, 46, 0.72) 60%); }
+  .podium-card.p-3 { border-color: var(--bronze); background: linear-gradient(180deg, rgba(205, 127, 50, 0.12) 0%, rgba(34, 18, 46, 0.72) 60%); }
 
   .podium-medal { font-size: 24px; margin-bottom: 4px; position: relative; z-index: 1; }
   .podium-avatar {
@@ -276,7 +162,7 @@
   }
   .p-1 .podium-avatar { border-color: var(--gold); background-color: rgba(255, 215, 0, 0.15); color: var(--gold); }
   .p-2 .podium-avatar { border-color: var(--silver); background-color: rgba(212, 212, 216, 0.15); color: var(--silver); }
-  .p-3 .podium-avatar { border-color: #cd7f32; background-color: rgba(205, 127, 50, 0.18); color: #e89e5e; }
+  .p-3 .podium-avatar { border-color: var(--bronze); background-color: rgba(205, 127, 50, 0.18); color: var(--bronze); }
   .podium-nick {
     font-size: 15px; font-weight: 500;
     margin-bottom: 14px;
@@ -328,8 +214,8 @@
     font-size: 18px;
     font-weight: 600;
     color: var(--coral-light);
-    background: linear-gradient(135deg, rgba(251, 113, 133, 0.18), rgba(253, 224, 71, 0.12));
-    border: 1px solid rgba(251, 113, 133, 0.4);
+    background: linear-gradient(135deg, rgba(255, 138, 76, 0.22), rgba(255, 207, 92, 0.16));
+    border: 1px solid rgba(255, 166, 61, 0.45);
     border-radius: 12px;
     padding: 6px 14px;
     display: inline-flex;
@@ -368,11 +254,11 @@
   .ticket-card:hover {
     transform: translateY(-2px);
     border-color: var(--coral);
-    box-shadow: 0 8px 24px rgba(251, 113, 133, 0.15);
+    box-shadow: 0 8px 24px rgba(255, 138, 76, 0.20);
   }
   .ticket-card.expanded {
     border-color: var(--coral-light);
-    box-shadow: 0 8px 28px rgba(251, 113, 133, 0.22);
+    box-shadow: 0 8px 28px rgba(255, 138, 76, 0.28);
   }
 
   .ticket-rank {
@@ -390,7 +276,7 @@
     border-radius: 50%;
     border: 2px solid var(--card-border);
     background-size: cover; background-position: center;
-    background-color: rgba(4, 47, 46, 0.6);
+    background-color: rgba(28, 14, 38, 0.7);
     display: flex; align-items: center; justify-content: center;
     font-size: 16px; color: var(--text-dim);
     flex-shrink: 0;
@@ -748,8 +634,8 @@ function renderStreamers(config) {
 function streamerBlock(klass, gold, silver) {
   const goldHtml = `<div class="sb-tier gold" title="Золото — без лимита">🟡 ${gold}</div>`;
   const silverHtml = `
-    <div class="sb-tier silver" title="Серебро — лимит 50">
-      ⚪ ${silver}<span class="sb-cap">/50</span>
+    <div class="sb-tier silver" title="Серебро — лимит ${SILVER_CAP}">
+      ⚪ ${silver}<span class="sb-cap">/${SILVER_CAP}</span>
     </div>
   `;
   return `<div class="streamer-block ${klass}">${goldHtml}${silverHtml}</div>`;
