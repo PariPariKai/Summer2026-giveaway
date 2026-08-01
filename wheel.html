@@ -753,6 +753,20 @@ let finalists = null; // пустые слоты 1–5; заполняются �
 let log = [];
 let soundOn = true;
 
+// Текущее разложение колеса на секторы. Считается один раз при отрисовке
+// и переиспользуется при прокрутке — чтобы картинка и остановка совпадали.
+let currentSegments = [];
+
+// ===== Дробление секторов на финале =====
+// Когда участников мало, один большой сектор на человека делает исход
+// предсказуемым: видно, куда идёт стрелка. Поэтому долю каждого режем
+// на несколько тонких кусочков и раскидываем их по кругу вперемешку.
+// Сумма углов у человека НЕ меняется → шансы остаются прежними,
+// но предугадать результат по колесу больше нельзя.
+const SPLIT_BELOW_PLAYERS = 10;  // включается, когда участников меньше
+const MIN_SLICE_ANGLE     = 4;   // ни один кусочек не тоньше этого, °
+const MAX_PARTS           = 10;  // максимум кусочков на одного участника
+
 // Закатная палитра секторов: тёплое ядро + прохладные сумеречные акценты.
 // Все оттенки достаточно тёмные, чтобы белые ники читались поверх.
 const SECTOR_COLORS = [
@@ -999,26 +1013,60 @@ function ticketWeight(t) {
 function computeSegments() {
   const totalWeight = activeTickets.reduce((s, t) => s + ticketWeight(t), 0);
   if (totalWeight === 0) return [];
+
+  // --- 1. Доля каждого участника (как и раньше) ---
   const MIN_ANGLE = 1.5;
-  let segments = activeTickets.map(t => ({
+  let shares = activeTickets.map((t, i) => ({
     ticket: t,
+    ticketIndex: i,
     angle: (ticketWeight(t) / totalWeight) * 360,
   }));
-  const tooThin = segments.filter(s => s.angle < MIN_ANGLE);
-  if (tooThin.length > 0 && tooThin.length < segments.length) {
+  const tooThin = shares.filter(s => s.angle < MIN_ANGLE);
+  if (tooThin.length > 0 && tooThin.length < shares.length) {
     const deficit = tooThin.reduce((sum, s) => sum + (MIN_ANGLE - s.angle), 0);
-    const big = segments.filter(s => s.angle >= MIN_ANGLE);
+    const big = shares.filter(s => s.angle >= MIN_ANGLE);
     const bigTotal = big.reduce((sum, s) => sum + s.angle, 0);
     big.forEach(s => { s.angle -= (s.angle / bigTotal) * deficit; });
     tooThin.forEach(s => { s.angle = MIN_ANGLE; });
   }
+
+  // --- 2. На сколько кусочков резать долю каждого ---
+  // У кого доля больше — тому больше кусочков, но ни один кусочек
+  // не тоньше MIN_SLICE_ANGLE, иначе на нём не прочитать ник.
+  const splitOn = shares.length > 1 && shares.length < SPLIT_BELOW_PLAYERS;
+  shares.forEach(s => {
+    s.parts = splitOn
+      ? Math.max(1, Math.min(MAX_PARTS, Math.floor(s.angle / MIN_SLICE_ANGLE)))
+      : 1;
+  });
+
+  // --- 3. Равномерно раскидываем кусочки по кругу ---
+  // Каждому кусочку считаем «идеальное место» на круге (0..1) и потом
+  // сортируем все кусочки по нему. Так доли одного человека расходятся
+  // максимально далеко друг от друга и перемешиваются с чужими.
+  const ordered = [];
+  shares.forEach((s, i) => {
+    const offset = (i * 0.37) % 1;   // сдвиг, чтобы равные доли не слипались
+    for (let j = 0; j < s.parts; j++) {
+      ordered.push({
+        ticket: s.ticket,
+        ticketIndex: s.ticketIndex,
+        angle: s.angle / s.parts,
+        key: (j + offset) / s.parts,
+      });
+    }
+  });
+  ordered.sort((a, b) => a.key - b.key);
+
+  // --- 4. Абсолютные углы ---
   let cumulative = 0;
-  return segments.map(s => {
+  return ordered.map(s => {
     const startAngle = cumulative;
     cumulative += s.angle;
     const endAngle = cumulative;
     return {
       ticket: s.ticket,
+      ticketIndex: s.ticketIndex,
       angle: s.angle,
       startAngle: startAngle,
       endAngle: endAngle,
@@ -1033,12 +1081,16 @@ function computeSegments() {
 function renderWheel() {
   const svg = document.getElementById('wheel');
   if (activeTickets.length === 0) {
+    currentSegments = [];
     svg.innerHTML = `<text x="50" y="50" text-anchor="middle" dominant-baseline="middle"
                       fill="rgba(255,255,255,0.4)" font-size="6">Нет участников</text>`;
     return;
   }
 
+  // Считаем раскладку один раз и запоминаем — прокрутка обязана
+  // использовать ровно ту же, иначе колесо остановится не на том имени
   const segments = computeSegments();
+  currentSegments = segments;
   if (segments.length === 0) return;
 
   let groupContent = '';
@@ -1048,22 +1100,28 @@ function renderWheel() {
     const color = SECTOR_COLORS[i % SECTOR_COLORS.length];
     const path = sectorPath(cx, cy, r, seg.startAngle, seg.endAngle);
 
-    const textRadius = r * 0.65;
+    // Ник пишем ВДОЛЬ радиуса — так он помещается даже в тонкий сектор.
+    // На левой половине круга разворачиваем, иначе текст вверх ногами.
+    const textRadius = r * 0.93;
     const textRad = (seg.midAngle - 90) * Math.PI / 180;
     const tx = cx + Math.cos(textRad) * textRadius;
     const ty = cy + Math.sin(textRad) * textRadius;
-    const fontSize = Math.min(3.5, Math.max(1.4, seg.angle / 8));
+    const onRight = seg.midAngle <= 180;
+    const textRot = onRight ? seg.midAngle - 90 : seg.midAngle + 90;
+    const anchor = onRight ? 'end' : 'start';
+    const fontSize = Math.min(3.2, Math.max(1.5, seg.angle * 0.4));
     let displayNick = seg.ticket.nick;
-    const maxChars = Math.max(4, Math.floor(seg.angle / 1.5));
-    if (displayNick.length > maxChars) displayNick = displayNick.substring(0, maxChars - 1) + '…';
+    if (displayNick.length > 18) displayNick = displayNick.substring(0, 17) + '…';
     const showText = seg.angle >= 2;
 
     groupContent += `<path d="${path}" fill="${color}" stroke="#150c28" stroke-width="0.2"/>`;
     if (showText) {
+      // paint-order + обводка вместо тени: в SVG читается надёжнее
       groupContent += `<text x="${tx}" y="${ty}" fill="#fff" font-size="${fontSize}"
-                       text-anchor="middle" dominant-baseline="middle"
-                       transform="rotate(${seg.midAngle} ${tx} ${ty})"
-                       style="text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">${esc(displayNick)}</text>`;
+                       text-anchor="${anchor}" dominant-baseline="middle"
+                       transform="rotate(${textRot} ${tx} ${ty})"
+                       style="paint-order: stroke; stroke: rgba(0,0,0,0.6); stroke-width: 0.55;
+                              font-weight: 600; pointer-events: none;">${esc(displayNick)}</text>`;
     }
   });
 
@@ -1119,12 +1177,25 @@ async function spin(callback, forcedIdx) {
   isSpinning = true;
   setControlsDisabled(true);
 
-  const segments = computeSegments();
+  // Берём ту же раскладку, что нарисована на экране
+  const segments = currentSegments.length ? currentSegments : computeSegments();
   // Если задан forcedIdx — колесо остановится на нём, иначе обычный взвешенный выбор
   const winnerIdx = (typeof forcedIdx === 'number' && forcedIdx >= 0 && forcedIdx < activeTickets.length)
     ? forcedIdx
     : pickWinnerIndex();
-  const targetCenterAngle = segments[winnerIdx].midAngle;
+
+  // У победителя на колесе может быть несколько кусочков — выбираем случайный.
+  // На вероятность это не влияет (победитель уже определён), зато стрелка
+  // каждый раз приходит в разное место круга.
+  const winnerSlices = segments.filter(s => s.ticketIndex === winnerIdx);
+  let chosenSlice = winnerSlices[0];
+  if (winnerSlices.length > 1) {
+    const pick = new Uint32Array(1);
+    crypto.getRandomValues(pick);
+    chosenSlice = winnerSlices[pick[0] % winnerSlices.length];
+  }
+  if (!chosenSlice) { isSpinning = false; setControlsDisabled(false); return; }
+  const targetCenterAngle = chosenSlice.midAngle;
 
   // Хотим: (targetCenterAngle + R) % 360 === POINTER_ANGLE (== 0)
   let baseTarget = POINTER_ANGLE - targetCenterAngle;
