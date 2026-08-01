@@ -87,7 +87,6 @@
     width: 100%; max-width: 700px;
     aspect-ratio: 1 / 1;
     margin-bottom: 24px;
-    padding-top: 36px; /* место для стрелки сверху */
   }
 
   .wheel-svg {
@@ -96,26 +95,29 @@
     filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5));
   }
 
-  /* Стрелка сверху, указывает вниз */
+  /* Стрелка справа, указывает влево.
+     Сбоку ник победителя оказывается написан горизонтально — его удобно
+     читать в момент остановки (сверху текст вставал бы вертикально). */
   .wheel-pointer {
     position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 52px;
-    height: 60px;
+    right: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 60px;
+    height: 52px;
     z-index: 10;
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
-    transform-origin: 50% 25%; /* верхушка стрелки = центр поворота */
+    filter: drop-shadow(-4px 4px 8px rgba(0,0,0,0.6));
+    transform-origin: 88% 50%; /* основание стрелки = центр поворота */
     transition: transform 0.05s ease-out;
   }
   .wheel-pointer svg { width: 100%; height: 100%; }
 
-  /* Анимация дёргания стрелки */
+  /* Дёрганье: колесо крутится по часовой, у правого края идёт вниз —
+     значит и стрелку отбрасывает вниз */
   @keyframes pointerTick {
-    0%   { transform: translateX(-50%) rotate(0deg); }
-    30%  { transform: translateX(-50%) rotate(-18deg); }
-    100% { transform: translateX(-50%) rotate(0deg); }
+    0%   { transform: translateY(-50%) rotate(0deg); }
+    30%  { transform: translateY(-50%) rotate(16deg); }
+    100% { transform: translateY(-50%) rotate(0deg); }
   }
   .wheel-pointer.ticking { animation: pointerTick 0.18s ease-out; }
 
@@ -552,6 +554,8 @@
 
   @media (max-width: 700px) {
     .wheel-area { max-width: 95vw; }
+    /* Стрелка меньше — иначе перекрывает ник победителя на узком экране */
+    .wheel-pointer { width: 40px; height: 34px; right: -4px; }
     .winner-card { padding: 40px 30px; }
     .winner-nick { font-size: 36px; }
     .winner-avatar { width: 140px; height: 140px; font-size: 48px; }
@@ -594,9 +598,9 @@
         <div class="wheel-area">
           <svg class="wheel-svg" id="wheel" viewBox="0 0 100 100"></svg>
           <div class="wheel-pointer" id="wheel-pointer">
-            <svg viewBox="0 0 52 60">
-              <polygon points="26,58 4,8 48,8" fill="#ffa63d" stroke="#150c28" stroke-width="2" stroke-linejoin="round"/>
-              <circle cx="26" cy="10" r="5" fill="#ffa63d" stroke="#150c28" stroke-width="2"/>
+            <svg viewBox="0 0 60 52">
+              <polygon points="2,26 52,4 52,48" fill="#ffa63d" stroke="#150c28" stroke-width="2" stroke-linejoin="round"/>
+              <circle cx="50" cy="26" r="5" fill="#ffa63d" stroke="#150c28" stroke-width="2"/>
             </svg>
           </div>
         </div>
@@ -1102,13 +1106,20 @@ function renderWheel() {
 
     // Ник пишем ВДОЛЬ радиуса — так он помещается даже в тонкий сектор.
     // На левой половине круга разворачиваем, иначе текст вверх ногами.
-    const textRadius = r * 0.93;
+    const textRadius = r * 0.86;   // с отступом от обода, чтобы стрелка не закрывала ник
     const textRad = (seg.midAngle - 90) * Math.PI / 180;
     const tx = cx + Math.cos(textRad) * textRadius;
     const ty = cy + Math.sin(textRad) * textRadius;
-    const onRight = seg.midAngle <= 180;
-    const textRot = onRight ? seg.midAngle - 90 : seg.midAngle + 90;
-    const anchor = onRight ? 'end' : 'start';
+    // Ориентацию считаем по тому, где сектор окажется НА ЭКРАНЕ с учётом
+    // текущего поворота колеса. Иначе после прокрутки половина подписей
+    // встаёт вверх ногами: они поворачиваются вместе с колесом.
+    let textRot = seg.midAngle - 90;
+    let anchor = 'end';
+    const onScreen = ((textRot + currentRotation) % 360 + 360) % 360;
+    if (onScreen > 90 && onScreen < 270) {
+      textRot += 180;      // развернуть, чтобы не читалось вверх ногами
+      anchor = 'start';
+    }
     const fontSize = Math.min(3.2, Math.max(1.5, seg.angle * 0.4));
     let displayNick = seg.ticket.nick;
     if (displayNick.length > 18) displayNick = displayNick.substring(0, 17) + '…';
@@ -1163,8 +1174,9 @@ function pickWinnerIndex() {
   return activeTickets.length - 1;
 }
 
-// Стрелка указывает ВНИЗ из верхней позиции = угол 0° (12 часов в нашей системе координат)
-const POINTER_ANGLE = 0;
+// Стрелка стоит СПРАВА и указывает влево = угол 90° (3 часа в нашей системе).
+// Сбоку подпись победителя горизонтальна и читается без наклона головы.
+const POINTER_ANGLE = 90;
 
 async function spin(callback, forcedIdx) {
   if (isSpinning) return;
@@ -1216,6 +1228,10 @@ async function spin(callback, forcedIdx) {
   // Параллельно отслеживаем пересечения границ секторов через requestAnimationFrame.
   // Используем ту же ease-out функцию для расчёта текущего угла.
   await trackPointerTicks(startRotation, finalRotation, duration, segments);
+
+  // Колесо встало — перерисовываем, чтобы подписи выровнялись под финальный
+  // угол. Поворот группы при этом сохраняется, скачка картинки нет.
+  renderWheel();
 
   await new Promise(resolve => setTimeout(resolve, 100)); // небольшая пауза
   isSpinning = false;
