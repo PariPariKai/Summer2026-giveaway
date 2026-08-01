@@ -868,7 +868,10 @@ async function submitTicket() {
 
     if (!data.ok) {
       showNotice('error', '❌ ' + (data.message || 'Ошибка сервера'));
-      submitBtn.disabled = false;
+      // Сервер не принял авторизацию — сессию сбрасываем, чтобы не
+      // долбиться протухшим токеном и сразу предложить войти заново
+      if (data.error === 'auth_failed') signOut();
+      else submitBtn.disabled = false;
       return;
     }
 
@@ -951,10 +954,17 @@ function renderSessionEntries() {
 let idToken = null;
 let account = { email: null, name: null, exp: 0 };
 
+// Ключ, под которым храним сессию, чтобы вход не слетал при F5.
+// Внутри — сам ID-токен; он живёт ~1 час и потом требует повторного входа.
+// (Прежняя версия хранила ПАРОЛЬ открытым текстом и бессрочно — так хуже.)
+const SESSION_KEY = 'form_gis_session';
+
 function decodeJwt(token) {
   try {
-    const part = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    return JSON.parse(decodeURIComponent(escape(atob(part))));
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const bin = atob(b64);
+    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+    return JSON.parse(new TextDecoder('utf-8').decode(bytes));
   } catch (e) { return {}; }
 }
 
@@ -963,12 +973,35 @@ function tokenValid() {
   return !!idToken && account.exp * 1000 - Date.now() > 60000;
 }
 
-function handleCredentialResponse(response) {
-  idToken = response.credential;
-  const p = decodeJwt(idToken);
-  account = { email: p.email || '', name: p.name || p.email || '', exp: parseInt(p.exp, 10) || 0 };
+function applyCredential(token) {
+  const p = decodeJwt(token);
+  const exp = parseInt(p.exp, 10) || 0;
+  if (exp * 1000 - Date.now() <= 60000) return false;   // просрочен
+  idToken = token;
+  account = { email: p.email || '', name: p.name || p.email || '', exp: exp };
   const emailEl = document.getElementById('account-email');
   if (emailEl) emailEl.textContent = account.email;
+  return true;
+}
+
+function saveSession() {
+  try { localStorage.setItem(SESSION_KEY, idToken); } catch (e) {}
+}
+function clearSession() {
+  try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+}
+// Восстановление входа после перезагрузки страницы
+function restoreSession() {
+  let saved = null;
+  try { saved = localStorage.getItem(SESSION_KEY); } catch (e) {}
+  if (!saved) return false;
+  if (!applyCredential(saved)) { clearSession(); return false; }
+  return true;
+}
+
+function handleCredentialResponse(response) {
+  if (!applyCredential(response.credential)) return;
+  saveSession();
   enterApp();
 }
 
@@ -993,6 +1026,7 @@ async function enterApp() {
 
 function signOut() {
   try { if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch (e) {}
+  clearSession();
   idToken = null;
   account = { email: null, name: null, exp: 0 };
   const emailEl = document.getElementById('account-email');
@@ -1023,10 +1057,15 @@ document.getElementById('logout-btn').addEventListener('click', () => {
     callback: handleCredentialResponse,
     auto_select: true,
   });
+  // Язык кнопки Google подхватывает из браузера — у каждого свой
   google.accounts.id.renderButton(
     document.getElementById('gsi-button'),
     { theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'pill' }
   );
+
+  // Сессия ещё жива (перезагрузили страницу) — заходим сразу, без входа
+  if (restoreSession()) { enterApp(); return; }
+
   google.accounts.id.prompt(); // тихий автологин / One Tap для вернувшихся
 })();
 </script>
