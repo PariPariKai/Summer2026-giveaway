@@ -769,7 +769,7 @@ let currentSegments = [];
 // но предугадать результат по колесу больше нельзя.
 const SPLIT_BELOW_PLAYERS = 10;  // включается, когда участников меньше
 const MIN_SLICE_ANGLE     = 4;   // ни один кусочек не тоньше этого, °
-const MAX_PARTS           = 10;  // максимум кусочков на одного участника
+const MAX_PARTS           = 6;   // максимум кусочков на участника (шире сектор — длиннее ник)
 
 // Закатная палитра секторов: тёплое ядро + прохладные сумеречные акценты.
 // Все оттенки достаточно тёмные, чтобы белые ники читались поверх.
@@ -1115,9 +1115,7 @@ function renderWheel() {
     // переворачивает подписи прямо во время вращения, чтобы ни одна
     // не подъезжала к стрелке вверх ногами.
     const baseRot = seg.midAngle - 90;
-    const fontSize = Math.min(3.2, Math.max(1.5, seg.angle * 0.4));
-    let displayNick = seg.ticket.nick;
-    if (displayNick.length > 18) displayNick = displayNick.substring(0, 17) + '…';
+    const fontSize = Math.min(2.8, Math.max(1.5, seg.angle * 0.4));
     const showText = seg.angle >= 2;
 
     groupContent += `<path d="${path}" fill="${color}" stroke="#150c28" stroke-width="0.2"/>`;
@@ -1125,10 +1123,11 @@ function renderWheel() {
       // paint-order + обводка вместо тени: в SVG читается надёжнее
       groupContent += `<text x="${tx}" y="${ty}" fill="#fff" font-size="${fontSize}"
                        data-base="${baseRot.toFixed(3)}" data-tx="${tx.toFixed(3)}" data-ty="${ty.toFixed(3)}"
+                       data-angle="${seg.angle.toFixed(4)}" data-full="${esc(seg.ticket.nick)}"
                        text-anchor="end" dominant-baseline="middle"
                        transform="rotate(${baseRot} ${tx} ${ty})"
                        style="paint-order: stroke; stroke: rgba(0,0,0,0.6); stroke-width: 0.55;
-                              font-weight: 600; pointer-events: none;">${esc(displayNick)}</text>`;
+                              font-weight: 600; pointer-events: none;">${esc(seg.ticket.nick)}</text>`;
     }
   });
 
@@ -1140,7 +1139,54 @@ function renderWheel() {
   `;
 
   labelCache = svg.querySelectorAll('#wheel-group text[data-base]');
+  fitLabels();
   updateLabelOrientation(currentRotation);
+}
+
+// ============================================================
+// Подгонка длины подписей
+//
+// Подписи идут по радиусу, а сектор к центру сужается: его ширина на
+// радиусе r равна r * угол(рад). Длинный ник доезжает туда, где ширины
+// уже нет, и налезает на соседние сектора — вылезает как раз на финале,
+// когда участников мало и дробление даёт узкие кусочки.
+//
+// Резать по числу символов ненадёжно: кириллица, латиница и цифры
+// разной ширины. Меряем фактическую длину строки и подрезаем
+// двоичным поиском.
+// ============================================================
+function fitLabels() {
+  const textR = 48 * 0.86;          // радиус, на котором заканчивается подпись
+  for (let i = 0; i < labelCache.length; i++) {
+    const el = labelCache[i];
+    const angle = parseFloat(el.dataset.angle);
+    const fs = parseFloat(el.getAttribute('font-size'));
+    const full = el.dataset.full || '';
+
+    // Глубже этого радиуса буквы уже не помещаются между соседями
+    const rMin = Math.max(10, (fs * 1.15) / (angle * 0.017453));
+    const maxLen = Math.max(3, textR - rMin);
+
+    el.textContent = full;
+    const measured = el.getComputedTextLength();
+
+    // В скрытой вкладке браузер не размечает SVG и возвращает 0 — мерить
+    // нечего, оцениваем по числу символов (≈0.65 кегля на символ).
+    if (!measured) {
+      const maxChars = Math.max(3, Math.floor(maxLen / (fs * 0.65)));
+      if (full.length > maxChars) el.textContent = full.slice(0, maxChars - 1).trimEnd() + '…';
+      continue;
+    }
+    if (measured <= maxLen) continue;
+
+    let lo = 0, hi = full.length;
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2);
+      el.textContent = full.slice(0, mid).trimEnd() + '…';
+      if (el.getComputedTextLength() <= maxLen) lo = mid; else hi = mid - 1;
+    }
+    el.textContent = lo > 0 ? full.slice(0, lo).trimEnd() + '…' : '';
+  }
 }
 
 // ============================================================
