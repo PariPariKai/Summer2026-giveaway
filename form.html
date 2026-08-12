@@ -30,6 +30,12 @@
   // CSV-ссылки на листы (для автодополнения и аватарок)
   const VIEWERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pub?gid=222000001&single=true&output=csv";
   const CONFIG_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pub?gid=222000002&single=true&output=csv";
+  // Тот же лист, что читает tickets.html — оттуда берём серебро по стримерам
+  const TICKETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT4e5Snl5FT-EdbjHQKKML7Ze1kNgpYcgx2MtrYWmkIPK32fHBTRfw7i3aKckWVvT6OoOQfOrQlyD6_/pub?gid=1111321722&single=true&output=csv";
+
+  // Лимит серебра на стримера в месяц. Июнь — 100, июль — 50, август — 25.
+  // ⚠ Меняешь здесь — поменяй и в tickets.html (там такая же константа).
+  const SILVER_CAP = 25;
 </script>
 
 <style>
@@ -335,6 +341,32 @@
   }
   .autocomplete-nick { font-size: 14px; color: var(--text); }
 
+  /* Бейдж "кармашки полны" в выпадающем списке */
+  .autocomplete-silver-full {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 11px;
+    color: #e4e4e7;
+    background: rgba(212, 212, 216, 0.14);
+    border: 1px solid rgba(212, 212, 216, 0.35);
+    border-radius: 999px;
+    padding: 3px 9px;
+    white-space: nowrap;
+  }
+
+  /* Предупреждение: у выбранного ника полное серебро */
+  .silver-full-warning {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(212, 212, 216, 0.10);
+    border: 1px solid rgba(212, 212, 216, 0.45);
+    border-radius: 8px;
+    font-size: 12px;
+    color: #e4e4e7;
+    display: none;
+  }
+  .silver-full-warning.active { display: block; }
+
   .new-nick-warning {
     margin-top: 8px;
     padding: 8px 12px;
@@ -509,6 +541,7 @@
         <div id="new-nick-warning" class="new-nick-warning">
           ⚠️ Этого ника нет в списке Viewers. Добавь его туда после, чтобы появилась аватарка на сайте.
         </div>
+        <div id="silver-full-warning" class="silver-full-warning"></div>
       </div>
 
       <!-- Источник -->
@@ -616,6 +649,9 @@ let viewersList = []; // [{nick, avatar}]
 let selectedStreamer = null;
 let sessionEntries = []; // последние выдачи в этой сессии
 
+// Серебро по каждому стримеру: ник (в нижнем регистре) → {PariPariKai: N, Ilyich116: N, d1psy_off: N}
+let silverMap = {};
+
 // ============================================================
 // Загрузка Viewers и Config
 // ============================================================
@@ -636,6 +672,45 @@ async function loadViewers() {
         avatar: avatarIdx >= 0 ? (r[avatarIdx] || '').trim() : ''
       }));
   } catch (e) { console.error('Viewers load failed', e); }
+}
+
+async function loadTickets() {
+  try {
+    const res = await fetch(TICKETS_CSV_URL);
+    if (!res.ok) return;
+    const rows = parseCSV(await res.text());
+    if (rows.length < 2) return;
+    const headers = rows[0].map(h => h.trim().toLowerCase());
+    const nickIdx = headers.indexOf('ник');
+    const ppkIdx = headers.indexOf('серебро_ппк');
+    const ilyichIdx = headers.indexOf('серебро_ильич');
+    const dipsyIdx = headers.indexOf('серебро_дипси');
+    if (nickIdx < 0) return;
+    const num = (r, idx) => (idx < 0 || idx >= r.length) ? 0 : (parseInt((r[idx] || '0').trim(), 10) || 0);
+    silverMap = {};
+    rows.slice(1).forEach(r => {
+      const nick = (r[nickIdx] || '').trim();
+      if (!nick) return;
+      silverMap[nick.toLowerCase()] = {
+        'PariPariKai': num(r, ppkIdx),
+        'Ilyich116':   num(r, ilyichIdx),
+        'd1psy_off':   num(r, dipsyIdx),
+      };
+    });
+  } catch (e) { console.error('Tickets load failed', e); }
+}
+
+// Сколько серебра у ника от выбранного стримера (null — стример не выбран или ника нет)
+function silverCount(nick) {
+  if (!selectedStreamer) return null;
+  const rec = silverMap[nick.trim().toLowerCase()];
+  if (!rec) return null;
+  return rec[selectedStreamer] || 0;
+}
+
+function isSilverFull(nick) {
+  const n = silverCount(nick);
+  return n !== null && n >= SILVER_CAP;
 }
 
 async function loadConfig() {
@@ -751,10 +826,14 @@ function updateAutocomplete() {
 
     acList.innerHTML = matches.map((v, i) => {
       const avatarStyle = v.avatar ? `background-image:url('${esc(v.avatar)}');` : '';
+      const fullBadge = isSilverFull(v.nick)
+        ? `<div class="autocomplete-silver-full">⚪ ${silverCount(v.nick)}/${SILVER_CAP} · кармашки полны</div>`
+        : '';
       return `
         <div class="autocomplete-item" data-nick="${esc(v.nick)}" data-idx="${i}">
           <div class="autocomplete-avatar" style="${avatarStyle}"></div>
           <div class="autocomplete-nick">${esc(v.nick)}</div>
+          ${fullBadge}
         </div>
       `;
     }).join('');
@@ -819,12 +898,25 @@ document.getElementById('source-select').addEventListener('change', updateSubmit
 // ============================================================
 // Submit
 // ============================================================
+function updateSilverWarning() {
+  const el = document.getElementById('silver-full-warning');
+  const nick = nickInput.value.trim();
+  if (nick && isSilverFull(nick)) {
+    const streamerNick = streamerData[selectedStreamer] ? streamerData[selectedStreamer].nick : '';
+    el.innerHTML = `⚪ У <strong>${esc(nick)}</strong> полные кармашки серебра (${silverCount(nick)}/${SILVER_CAP}) у ${esc(streamerNick)}. Серебро не выдавай — выдай альтернативный приз.`;
+    el.classList.add('active');
+  } else {
+    el.classList.remove('active');
+  }
+}
+
 function updateSubmitState() {
   const nick = nickInput.value.trim();
   const source = document.getElementById('source-select').value;
   const count = parseInt(countInput.value, 10);
   const ok = selectedStreamer && nick.length > 0 && source && count >= 1 && count <= 100;
   document.getElementById('submit-btn').disabled = !ok;
+  updateSilverWarning();
 }
 
 const submitBtn = document.getElementById('submit-btn');
@@ -878,6 +970,13 @@ async function submitTicket() {
     // Успех!
     showNotice('success', `✓ Выдано: ${count} билет(ов) · ${nick} · ${source}`);
     addSessionEntry({ streamer: streamer, nick: nick, source: source, count: count });
+
+    // Обновим локальный счётчик серебра сразу (опубликованный CSV отстаёт на минуты)
+    if (source.startsWith('⚪')) {
+      const key = nick.toLowerCase();
+      if (!silverMap[key]) silverMap[key] = { 'PariPariKai': 0, 'Ilyich116': 0, 'd1psy_off': 0 };
+      silverMap[key][streamer] = (silverMap[key][streamer] || 0) + count;
+    }
 
     // Сбросить поля (стримера оставляем)
     nickInput.value = '';
@@ -1010,7 +1109,7 @@ async function enterApp() {
   document.getElementById('app').classList.add('active');
 
   // Загружаем данные
-  await Promise.all([loadConfig(), loadViewers()]);
+  await Promise.all([loadConfig(), loadViewers(), loadTickets()]);
   renderStreamers();
 
   // Восстанавливаем последний выбор стримера
